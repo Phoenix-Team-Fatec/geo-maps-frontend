@@ -8,6 +8,9 @@
     "scheme": "api5frontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "assetBundlePatterns": [
+      "assets/fonts/**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },

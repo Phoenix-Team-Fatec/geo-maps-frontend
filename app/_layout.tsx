@@ -1,5 +1,41 @@
-import { Stack } from "expo-router";
+import { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import SplashScreen from '@/components/initial-screen/splash-screen';
+import { setGlobalFont, useAppFonts } from '@/config/font-config';
+import '../global.css';
 
 export default function RootLayout() {
-  return <Stack />;
+  const [isShowingSplash, setIsShowingSplash] = useState(true);
+  const { fontsLoaded, fontError } = useAppFonts(); 
+
+  useEffect(() => {
+    // Set global font when fonts are loaded
+    if (fontsLoaded) {
+      setGlobalFont('Poppins-Regular');  
+    }
+  }, [fontsLoaded, fontError]); 
+
+  useEffect(() => {
+    // Hide splash screen after 2.5 seconds and fonts are loaded
+    if (fontsLoaded || fontError) {
+      const timer = setTimeout(() => {
+        setIsShowingSplash(false);
+      }, 2500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [fontsLoaded, fontError]); 
+
+  // Show splash screen while fonts are loading
+  if ((!fontsLoaded && !fontError) || isShowingSplash) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+      <Stack.Screen name="main" options={{ headerShown: false }} />
+    </Stack>
+  );
 }
