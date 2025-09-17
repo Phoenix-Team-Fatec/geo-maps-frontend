@@ -7,7 +7,7 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
@@ -32,29 +32,29 @@ export default function IndexScreen() {
   }, [fadeAnim, slideAnim]);
 
   const handleLogin = () => {
-    router.push("/auth/login");
+    router.push("/create-profile");
   };
 
   const handleContinueWithoutLogin = () => {
-    router.push("/main");
+    router.push("/template-page");
   };
 
   return (
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-        
+
         {/* Background Pattern */}
         <View className="absolute" style={{ width, height }}>
-          <View 
+          <View
             className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
             style={{ top: -50, right: -50 }}
           />
-          <View 
+          <View
             className="absolute w-[150px] h-[150px] rounded-[75px] bg-[#00D4FF]/[0.03]"
             style={{ bottom: 100, left: -30 }}
           />
-          <View 
+          <View
             className="absolute w-[100px] h-[100px] rounded-[50px] bg-white/[0.02]"
             style={{ top: height * 0.3, right: 30 }}
           />
@@ -79,7 +79,7 @@ export default function IndexScreen() {
             <Text className="text-[32px] font-bold text-white text-center mb-3 tracking-wide">
               Bem-vindo ao <Text className="text-[#00D4FF]">CAR</Text>!
             </Text>
-            
+
             <Text className="text-[16px] font-bold text-white/70 text-center leading-[22px] px-5">
               Navegue pelas propriedades rurais de forma simples
             </Text>
@@ -127,9 +127,9 @@ export default function IndexScreen() {
                 elevation: 8,
               }}
             >
-              <Text className="text-white text-lg font-semibold">
-                Crie sua conta
-              </Text>
+            <Text style={{ fontSize: 18, color: "white" }}>
+              Crie sua conta
+            </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
