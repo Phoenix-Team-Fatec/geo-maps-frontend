@@ -36,7 +36,7 @@ export default function IndexScreen() {
   };
 
   const handleContinueWithoutLogin = () => {
-    router.push("/template-page");
+    router.push("/(tabs)/map");
   };
 
   return (
