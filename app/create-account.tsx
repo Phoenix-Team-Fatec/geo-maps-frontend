@@ -105,7 +105,7 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
       password: formData.senha,
     };
 
-    const response = await fetch("http://192.168.3.2:8000/auth/register",  {
+    const response = await fetch("/auth/register",  {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
