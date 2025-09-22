@@ -41,45 +41,64 @@ export default function RegisterStep1() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const formatCPF = (text: string): string => { 
-  const numbers = text.replace(/\D/g, "");
+  const formatCPF = (text: string): string => {
+    const numbers = text.replace(/\D/g, "");
 
-  if (numbers.length <= 11) {
-    return numbers
+    if (numbers.length <= 11) {
+      return numbers
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    }
+
+    return numbers.slice(0, 11)
       .replace(/(\d{3})(\d)/, "$1.$2")
       .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-  }
-
-  return numbers.slice(0, 11)
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d)/, "$1.$2")
-    .replace(/(\d{3})(\d{2})$/, "$1-$2");
-};
+      .replace(/(\d{3})(\d{2})$/, "$1-$2");
+  };
 
   const formatDate = (text: string): string => {
-  const numbers = text.replace(/\D/g, "");
+    const numbers = text.replace(/\D/g, "");
 
-  if (numbers.length <= 8) {
-    return numbers
+    if (numbers.length <= 8) {
+      return numbers
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .replace(/(\d{2})(\d)/, "$1/$2");
+    }
+
+    return numbers.slice(0, 8)
       .replace(/(\d{2})(\d)/, "$1/$2")
       .replace(/(\d{2})(\d)/, "$1/$2");
-  }
-
-  return numbers.slice(0, 8)
-    .replace(/(\d{2})(\d)/, "$1/$2")
-    .replace(/(\d{2})(\d)/, "$1/$2");
-};
+  };
 
   const handleInputChange = (field: "nome" | "sobrenome" | "email" | "dataNascimento" | "cpf", value: string) => {
-  if (field === "cpf") {
-    setFormData({ ...formData, [field]: formatCPF(value) });
-  } else if (field === "dataNascimento") {
-    setFormData({ ...formData, [field]: formatDate(value) });
-  } else {
-    setFormData({ ...formData, [field]: value });
+    if (field === "cpf") {
+      setFormData({ ...formData, [field]: formatCPF(value) });
+    } else if (field === "dataNascimento") {
+      setFormData({ ...formData, [field]: formatDate(value) });
+    } else {
+      setFormData({ ...formData, [field]: value });
+    }
+  };
+
+  function isValidCPF(raw: string): boolean {
+    if (!raw) return false;
+    const cpf = raw.replace(/\D/g, "");
+    if (cpf.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+    const calc = (base: string, fatorIni: number) => {
+      let soma = 0;
+      for (let i = 0; i < base.length; i++) soma += parseInt(base[i], 10) * (fatorIni - i);
+      const resto = soma % 11;
+      return resto < 2 ? 0 : 11 - resto;
+    };
+
+    const d1 = calc(cpf.slice(0, 9), 10);
+    const d2 = calc(cpf.slice(0, 9) + d1, 11);
+    return cpf.endsWith(`${d1}${d2}`);
   }
-};
+
 
   const validateForm = () => {
     if (!formData.nome.trim()) {
@@ -98,7 +117,7 @@ export default function RegisterStep1() {
       Alert.alert("Erro", "Por favor, insira uma data de nascimento válida");
       return false;
     }
-    if (!formData.cpf.trim() || formData.cpf.length !== 14) {
+    if (!formData.cpf.trim() || formData.cpf.length !== 14 || !isValidCPF(formData.cpf)) {
       Alert.alert("Erro", "Por favor, insira um CPF válido");
       return false;
     }
@@ -106,29 +125,29 @@ export default function RegisterStep1() {
   };
 
   const handleNext = () => {
-  if (validateForm()) {
-    const parts = formData.dataNascimento.split("/");
-    if (parts.length !== 3) {
-      Alert.alert("Erro", "Data de nascimento inválida");
-      return;
+    if (validateForm()) {
+      const parts = formData.dataNascimento.split("/");
+      if (parts.length !== 3) {
+        Alert.alert("Erro", "Data de nascimento inválida");
+        return;
+      }
+
+      const [dia, mes, ano] = parts;
+      const diaFormatado = dia.padStart(2, "0");
+      const mesFormatado = mes.padStart(2, "0");
+      const dataFormatada = `${ano}-${mesFormatado}-${diaFormatado}`;
+
+      const payload = {
+        ...formData,
+        dataNascimento: dataFormatada,
+      };
+
+      router.push({
+        pathname: "/create-account",
+        params: payload,
+      });
     }
-
-    const [dia, mes, ano] = parts;
-    const diaFormatado = dia.padStart(2, "0");
-    const mesFormatado = mes.padStart(2, "0");
-    const dataFormatada = `${ano}-${mesFormatado}-${diaFormatado}`;
-
-    const payload = {
-      ...formData,
-      dataNascimento: dataFormatada,
-    };
-
-    router.push({
-      pathname: "/create-account",
-      params: payload,
-    });
-  }
-};
+  };
 
 
   const handleBack = () => {
@@ -139,18 +158,18 @@ export default function RegisterStep1() {
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-        
+
         {/* Background Pattern */}
         <View className="absolute" style={{ width, height }}>
-          <View 
+          <View
             className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
             style={{ top: -50, right: -50 }}
           />
-          <View 
+          <View
             className="absolute w-[150px] h-[150px] rounded-[75px] bg-[#00D4FF]/[0.03]"
             style={{ bottom: 100, left: -30 }}
           />
-          <View 
+          <View
             className="absolute w-[100px] h-[100px] rounded-[50px] bg-white/[0.02]"
             style={{ top: height * 0.3, right: 30 }}
           />
