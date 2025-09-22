@@ -43,11 +43,13 @@ export default function RegisterStep2() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const handleInputChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
-  };
+  type FormDataKeys = keyof typeof formData;
 
-  const validatePassword = (password) => {
+const handleInputChange = (field: FormDataKeys, value: string) => {
+  setFormData({ ...formData, [field]: value });
+};
+
+  const validatePassword = (password: string) => {
     if (password.length < 8) {
       return "A senha deve ter pelo menos 8 caracteres";
     }
@@ -89,42 +91,54 @@ export default function RegisterStep2() {
   };
 
   const handleFinish = async () => {
-    if (validateForm()) {
-      setIsLoading(true);
-      
-      try {
-        // Aqui você faria a chamada para a API para criar a conta
-        const userData = {
-          nome: params.nome,
-          sobrenome: params.sobrenome,
-          dataNascimento: params.dataNascimento,
-          cpf: params.cpf,
-          senha: formData.senha,
-        };
+  if (!validateForm()) return;
 
-        // Simular delay da API
-        await new Promise(resolve => setTimeout(resolve, 2000));
+  setIsLoading(true);
 
-        console.log("Dados do usuário:", userData);
-        
-        Alert.alert(
-          "Sucesso!", 
-          "Conta criada com sucesso!",
-          [
-            {
-              text: "OK",
-              onPress: () => router.push("/main")
-            }
-          ]
-        );
-        
-      } catch (error) {
-        Alert.alert("Erro", "Ocorreu um erro ao criar a conta. Tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
+  try {
+    const userData = {
+      nome: params.nome,
+      sobrenome: params.sobrenome,
+      data_nascimento: params.dataNascimento, 
+      cpf: params.cpf,
+      email: params.email, 
+      password: formData.senha,
+    };
+
+    const response = await fetch("http://192.168.3.2:8000/auth/register",  {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Usuário criado:", data);
+      Alert.alert(
+        "Sucesso!",
+        "Conta criada com sucesso!",
+        [
+          { text: "OK", onPress: () => router.push("/") }
+        ]
+      );
+    } else {
+      const errorData = await response.json();
+      Alert.alert(
+        "Erro",
+        errorData.detail || "Ocorreu um erro ao criar a conta."
+      );
     }
-  };
+
+  } catch (error) {
+    console.error("Erro ao chamar API:", error);
+    Alert.alert("Erro", "Ocorreu um erro na comunicação com o servidor.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleBack = () => {
     router.back();

@@ -21,6 +21,7 @@ export default function RegisterStep1() {
   const [formData, setFormData] = useState({
     nome: "",
     sobrenome: "",
+    email: "",
     dataNascimento: "",
     cpf: "",
   });
@@ -40,47 +41,45 @@ export default function RegisterStep1() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const formatCPF = (text) => {
-    // Remove todos os caracteres não numéricos
-    const numbers = text.replace(/\D/g, "");
-    
-    // Aplica a máscara XXX.XXX.XXX-XX
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    }
-    return numbers.slice(0, 11)
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{2})$/, "$1-$2");
-  };
+  const formatCPF = (text: string): string => { 
+  const numbers = text.replace(/\D/g, "");
 
-  const formatDate = (text) => {
-    // Remove todos os caracteres não numéricos
-    const numbers = text.replace(/\D/g, "");
-    
-    // Aplica a máscara DD/MM/YYYY
-    if (numbers.length <= 8) {
-      return numbers
-        .replace(/(\d{2})(\d)/, "$1/$2")
-        .replace(/(\d{2})(\d)/, "$1/$2");
-    }
-    return numbers.slice(0, 8)
+  if (numbers.length <= 11) {
+    return numbers
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+
+  return numbers.slice(0, 11)
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d{2})$/, "$1-$2");
+};
+
+  const formatDate = (text: string): string => {
+  const numbers = text.replace(/\D/g, "");
+
+  if (numbers.length <= 8) {
+    return numbers
       .replace(/(\d{2})(\d)/, "$1/$2")
       .replace(/(\d{2})(\d)/, "$1/$2");
-  };
+  }
 
-  const handleInputChange = (field, value) => {
-    if (field === "cpf") {
-      setFormData({ ...formData, [field]: formatCPF(value) });
-    } else if (field === "dataNascimento") {
-      setFormData({ ...formData, [field]: formatDate(value) });
-    } else {
-      setFormData({ ...formData, [field]: value });
-    }
-  };
+  return numbers.slice(0, 8)
+    .replace(/(\d{2})(\d)/, "$1/$2")
+    .replace(/(\d{2})(\d)/, "$1/$2");
+};
+
+  const handleInputChange = (field: "nome" | "sobrenome" | "email" | "dataNascimento" | "cpf", value: string) => {
+  if (field === "cpf") {
+    setFormData({ ...formData, [field]: formatCPF(value) });
+  } else if (field === "dataNascimento") {
+    setFormData({ ...formData, [field]: formatDate(value) });
+  } else {
+    setFormData({ ...formData, [field]: value });
+  }
+};
 
   const validateForm = () => {
     if (!formData.nome.trim()) {
@@ -89,6 +88,10 @@ export default function RegisterStep1() {
     }
     if (!formData.sobrenome.trim()) {
       Alert.alert("Erro", "Por favor, insira seu sobrenome");
+      return false;
+    }
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
+      Alert.alert("Erro", "Por favor, insira um e-mail válido");
       return false;
     }
     if (!formData.dataNascimento.trim() || formData.dataNascimento.length !== 10) {
@@ -103,14 +106,30 @@ export default function RegisterStep1() {
   };
 
   const handleNext = () => {
-    if (validateForm()) {
-      // Aqui você pode passar os dados para a próxima tela
-      router.push({
-        pathname: "/create-account",
-        params: formData,
-      });
+  if (validateForm()) {
+    const parts = formData.dataNascimento.split("/");
+    if (parts.length !== 3) {
+      Alert.alert("Erro", "Data de nascimento inválida");
+      return;
     }
-  };
+
+    const [dia, mes, ano] = parts;
+    const diaFormatado = dia.padStart(2, "0");
+    const mesFormatado = mes.padStart(2, "0");
+    const dataFormatada = `${ano}-${mesFormatado}-${diaFormatado}`;
+
+    const payload = {
+      ...formData,
+      dataNascimento: dataFormatada,
+    };
+
+    router.push({
+      pathname: "/create-account",
+      params: payload,
+    });
+  }
+};
+
 
   const handleBack = () => {
     router.back();
@@ -195,6 +214,20 @@ export default function RegisterStep1() {
                 value={formData.sobrenome}
                 onChangeText={(text) => handleInputChange("sobrenome", text)}
                 autoCapitalize="words"
+              />
+            </View>
+
+            {/* Email */}
+            <View className="mb-5">
+              <Text className="text-white/70 text-sm mb-2 ml-1">Email</Text>
+              <TextInput
+                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                placeholder="Digite seu email"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={formData.email}
+                onChangeText={(text) => handleInputChange("email", text)}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
             </View>
 
