@@ -1,3 +1,6 @@
+import { setupNetworking } from '../services/networking';
+setupNetworking();
+
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import SplashScreen from '@/components/initial-screen/splash-screen';
