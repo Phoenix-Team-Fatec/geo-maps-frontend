@@ -72,7 +72,7 @@ export default function BlankPageTemplate() {
               <TouchableOpacity 
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
-                onPress={() => router.push("/main")}
+                onPress={() => router.push("/main" as any)}
               >
                 <View className="w-6 h-6 mb-1">
                   <Text className="text-[#00D4FF] text-xl text-center">🏠</Text>
@@ -84,7 +84,7 @@ export default function BlankPageTemplate() {
               <TouchableOpacity 
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
-                onPress={() => router.push("/search")}
+                onPress={() => router.push("/search" as any)}
               >
                 <View className="w-6 h-6 mb-1">
                   <Text className="text-white/60 text-xl text-center">🔍</Text>
