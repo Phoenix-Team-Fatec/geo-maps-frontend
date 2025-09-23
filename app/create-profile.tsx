@@ -41,7 +41,15 @@ export default function RegisterStep1() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  interface FormData {
+    nome: string;
+    sobrenome: string;
+    dataNascimento: string;
+    cpf: string;
+  }
+
   const formatCPF = (text: string): string => {
+    // Remove todos os caracteres não numéricos
     const numbers = text.replace(/\D/g, "");
 
     if (numbers.length <= 11) {
@@ -57,7 +65,12 @@ export default function RegisterStep1() {
       .replace(/(\d{3})(\d{2})$/, "$1-$2");
   };
 
-  const formatDate = (text: string): string => {
+  interface FormatDate {
+    (text: string): string;
+  }
+
+  const formatDate: FormatDate = (text: string): string => {
+    // Remove todos os caracteres não numéricos
     const numbers = text.replace(/\D/g, "");
 
     if (numbers.length <= 8) {
@@ -71,7 +84,11 @@ export default function RegisterStep1() {
       .replace(/(\d{2})(\d)/, "$1/$2");
   };
 
-  const handleInputChange = (field: "nome" | "sobrenome" | "email" | "dataNascimento" | "cpf", value: string) => {
+  interface HandleInputChange {
+    (field: keyof FormData, value: string): void;
+  }
+
+  const handleInputChange: HandleInputChange = (field, value) => {
     if (field === "cpf") {
       setFormData({ ...formData, [field]: formatCPF(value) });
     } else if (field === "dataNascimento") {
@@ -208,18 +225,20 @@ export default function RegisterStep1() {
             </View>
           </View>
 
-          {/* Form Fields */}
-          <View className="px-6 flex-1">
+            {/* Form Fields */}
+            <View className="px-6 flex-1">
             {/* Nome */}
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Nome</Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
-                placeholder="Digite seu nome"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={formData.nome}
-                onChangeText={(text) => handleInputChange("nome", text)}
-                autoCapitalize="words"
+              className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+              placeholder="Digite seu nome"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={formData.nome}
+              onChangeText={(text) => handleInputChange("nome", text)}
+              autoCapitalize="words"
+              returnKeyType="done"
+              blurOnSubmit={true}
               />
             </View>
 
@@ -227,12 +246,14 @@ export default function RegisterStep1() {
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Sobrenome</Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
-                placeholder="Digite seu sobrenome"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={formData.sobrenome}
-                onChangeText={(text) => handleInputChange("sobrenome", text)}
-                autoCapitalize="words"
+              className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+              placeholder="Digite seu sobrenome"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={formData.sobrenome}
+              onChangeText={(text) => handleInputChange("sobrenome", text)}
+              autoCapitalize="words"
+              returnKeyType="done"
+              blurOnSubmit={true}
               />
             </View>
 
@@ -254,18 +275,20 @@ export default function RegisterStep1() {
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Data de Nascimento</Text>
               <View className="relative">
-                <TextInput
-                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                  placeholder="DD/MM/AAAA"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={formData.dataNascimento}
-                  onChangeText={(text) => handleInputChange("dataNascimento", text)}
-                  keyboardType="numeric"
-                  maxLength={10}
-                />
-                <View className="absolute right-4 top-4">
-                  <Text className="text-white/40 text-lg">📅</Text>
-                </View>
+              <TextInput
+                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
+                placeholder="DD/MM/AAAA"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={formData.dataNascimento}
+                onChangeText={(text) => handleInputChange("dataNascimento", text)}
+                keyboardType="numeric"
+                maxLength={10}
+                returnKeyType="done"
+                blurOnSubmit={true}
+              />
+              <View className="absolute right-4 top-4">
+                <Text className="text-white/40 text-lg">📅</Text>
+              </View>
               </View>
             </View>
 
@@ -273,18 +296,20 @@ export default function RegisterStep1() {
             <View className="mb-8">
               <Text className="text-white/70 text-sm mb-2 ml-1">CPF</Text>
               <View className="relative">
-                <TextInput
-                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                  placeholder="000.000.000-00"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={formData.cpf}
-                  onChangeText={(text) => handleInputChange("cpf", text)}
-                  keyboardType="numeric"
-                  maxLength={14}
-                />
-                <View className="absolute right-4 top-4">
-                  <Text className="text-white/40 text-lg">📄</Text>
-                </View>
+              <TextInput
+              className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
+              placeholder="000.000.000-00"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              value={formData.cpf}
+              onChangeText={(text) => handleInputChange("cpf", text)}
+              keyboardType="numeric"
+              maxLength={14}
+              returnKeyType="done"
+              blurOnSubmit={true}
+              />
+              <View className="absolute right-4 top-4">
+              <Text className="text-white/40 text-lg">📄</Text>
+              </View>
               </View>
             </View>
 
