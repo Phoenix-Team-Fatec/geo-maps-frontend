@@ -1,4 +1,4 @@
-{
+export default {
   "expo": {
     "name": "api5-frontend",
     "slug": "api5-frontend",
@@ -12,7 +12,13 @@
       "assets/fonts/**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to show your position on the map and provide navigation."
+      },
+      "config": {
+        "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +28,16 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+        }
+      }
     },
     "web": {
       "output": "static",
@@ -41,6 +56,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to your location to show your position on the map and provide navigation."
+        }
       ]
     ],
     "experiments": {
@@ -48,4 +69,4 @@
       "reactCompiler": true
     }
   }
-}
+};
