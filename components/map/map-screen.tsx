@@ -7,12 +7,13 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import MapView, { Marker, Polyline, Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, Polygon, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import SearchScreen from '@/components/search/search-bar-maps';
 import { SearchLocation } from '@/types/location';
+import { loadProjectArea, loadFullProjectArea, ProjectArea } from '@/utils/geojson';
 
 
 interface LocationCoords {
@@ -23,6 +24,8 @@ interface LocationCoords {
 
 export default function MapScreen() {
   const [location, setLocation] = useState<LocationCoords | null>(null);
+  const [projectAreaCenter, setProjectAreaCenter] = useState<LocationCoords | null>(null);
+  const [projectArea, setProjectArea] = useState<ProjectArea | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [destination, setDestination] = useState<LocationCoords | null>(null);
@@ -35,13 +38,26 @@ export default function MapScreen() {
   const watchRef = useRef<Location.LocationSubscription | null>(null);
 
   useEffect(() => {
-    getLocationPermission();
+    initializeApp();
     return () => {
       if (watchRef.current) {
         watchRef.current.remove();
       }
     };
   }, []);
+
+  const initializeApp = async () => {
+    // Load full project area data
+    const fullArea = await loadFullProjectArea();
+    if (fullArea) {
+      setProjectArea(fullArea);
+      setProjectAreaCenter(fullArea.center);
+      setLocation(fullArea.center); // Set initial location to project area center
+    }
+
+    // Then try to get user's actual location
+    getLocationPermission();
+  };
 
   const getLocationPermission = async () => {
     try {
@@ -186,7 +202,12 @@ export default function MapScreen() {
     );
   }
 
-  const initialRegion: Region = location ? {
+  const initialRegion: Region = projectAreaCenter ? {
+    latitude: projectAreaCenter.latitude,
+    longitude: projectAreaCenter.longitude,
+    latitudeDelta: 0.1,
+    longitudeDelta: 0.1,
+  } : location ? {
     latitude: location.latitude,
     longitude: location.longitude,
     latitudeDelta: 0.02,
@@ -214,7 +235,6 @@ export default function MapScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Clear button - only show when destination is selected */}
         {destinationLocation && (
           <TouchableOpacity
             className="ml-2 p-1"
@@ -234,6 +254,16 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         followsUserLocation={isNavigating}
       >
+        {/* Project Area Polygon */}
+        {projectArea && (
+          <Polygon
+            coordinates={projectArea.coordinates}
+            fillColor="rgba(0, 212, 255, 0.2)"
+            strokeColor="#00D4FF"
+            strokeWidth={2}
+          />
+        )}
+
         {/* Current Location Marker */}
         {location && (
           <Marker
