@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import SplashScreen from '@/components/initial-screen/splash-screen';
 import { setGlobalFont, useAppFonts } from '@/config/font-config';
-import '../global.css';
+import '../global.css';import { setupNetworking } from '../services/networking';
+
+setupNetworking();
 
 export default function RootLayout() {
   const [isShowingSplash, setIsShowingSplash] = useState(true);

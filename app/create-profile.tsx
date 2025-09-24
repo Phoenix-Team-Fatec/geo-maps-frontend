@@ -21,6 +21,7 @@ export default function RegisterStep1() {
   const [formData, setFormData] = useState({
     nome: "",
     sobrenome: "",
+    email: "",
     dataNascimento: "",
     cpf: "",
   });
@@ -40,54 +41,37 @@ export default function RegisterStep1() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  interface FormData {
-    nome: string;
-    sobrenome: string;
-    dataNascimento: string;
-    cpf: string;
-  }
-
   const formatCPF = (text: string): string => {
-    // Remove todos os caracteres não numéricos
     const numbers = text.replace(/\D/g, "");
-    
-    // Aplica a máscara XXX.XXX.XXX-XX
+
     if (numbers.length <= 11) {
       return numbers
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     }
+
     return numbers.slice(0, 11)
       .replace(/(\d{3})(\d)/, "$1.$2")
       .replace(/(\d{3})(\d)/, "$1.$2")
       .replace(/(\d{3})(\d{2})$/, "$1-$2");
   };
 
-  interface FormatDate {
-    (text: string): string;
-  }
-
-  const formatDate: FormatDate = (text: string): string => {
-    // Remove todos os caracteres não numéricos
+  const formatDate = (text: string): string => {
     const numbers = text.replace(/\D/g, "");
-    
-    // Aplica a máscara DD/MM/YYYY
+
     if (numbers.length <= 8) {
       return numbers
         .replace(/(\d{2})(\d)/, "$1/$2")
         .replace(/(\d{2})(\d)/, "$1/$2");
     }
+
     return numbers.slice(0, 8)
       .replace(/(\d{2})(\d)/, "$1/$2")
       .replace(/(\d{2})(\d)/, "$1/$2");
   };
 
-  interface HandleInputChange {
-    (field: keyof FormData, value: string): void;
-  }
-
-  const handleInputChange: HandleInputChange = (field, value) => {
+  const handleInputChange = (field: "nome" | "sobrenome" | "email" | "dataNascimento" | "cpf", value: string) => {
     if (field === "cpf") {
       setFormData({ ...formData, [field]: formatCPF(value) });
     } else if (field === "dataNascimento") {
@@ -96,6 +80,25 @@ export default function RegisterStep1() {
       setFormData({ ...formData, [field]: value });
     }
   };
+
+  function isValidCPF(raw: string): boolean {
+    if (!raw) return false;
+    const cpf = raw.replace(/\D/g, "");
+    if (cpf.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+    const calc = (base: string, fatorIni: number) => {
+      let soma = 0;
+      for (let i = 0; i < base.length; i++) soma += parseInt(base[i], 10) * (fatorIni - i);
+      const resto = soma % 11;
+      return resto < 2 ? 0 : 11 - resto;
+    };
+
+    const d1 = calc(cpf.slice(0, 9), 10);
+    const d2 = calc(cpf.slice(0, 9) + d1, 11);
+    return cpf.endsWith(`${d1}${d2}`);
+  }
+
 
   const validateForm = () => {
     if (!formData.nome.trim()) {
@@ -106,11 +109,15 @@ export default function RegisterStep1() {
       Alert.alert("Erro", "Por favor, insira seu sobrenome");
       return false;
     }
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
+      Alert.alert("Erro", "Por favor, insira um e-mail válido");
+      return false;
+    }
     if (!formData.dataNascimento.trim() || formData.dataNascimento.length !== 10) {
       Alert.alert("Erro", "Por favor, insira uma data de nascimento válida");
       return false;
     }
-    if (!formData.cpf.trim() || formData.cpf.length !== 14) {
+    if (!formData.cpf.trim() || formData.cpf.length !== 14 || !isValidCPF(formData.cpf)) {
       Alert.alert("Erro", "Por favor, insira um CPF válido");
       return false;
     }
@@ -119,13 +126,29 @@ export default function RegisterStep1() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Aqui você pode passar os dados para a próxima tela
+      const parts = formData.dataNascimento.split("/");
+      if (parts.length !== 3) {
+        Alert.alert("Erro", "Data de nascimento inválida");
+        return;
+      }
+
+      const [dia, mes, ano] = parts;
+      const diaFormatado = dia.padStart(2, "0");
+      const mesFormatado = mes.padStart(2, "0");
+      const dataFormatada = `${ano}-${mesFormatado}-${diaFormatado}`;
+
+      const payload = {
+        ...formData,
+        dataNascimento: dataFormatada,
+      };
+
       router.push({
         pathname: "/create-account",
-        params: formData,
+        params: payload,
       });
     }
   };
+
 
   const handleBack = () => {
     router.back();
@@ -135,18 +158,18 @@ export default function RegisterStep1() {
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-        
+
         {/* Background Pattern */}
         <View className="absolute" style={{ width, height }}>
-          <View 
+          <View
             className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
             style={{ top: -50, right: -50 }}
           />
-          <View 
+          <View
             className="absolute w-[150px] h-[150px] rounded-[75px] bg-[#00D4FF]/[0.03]"
             style={{ bottom: 100, left: -30 }}
           />
-          <View 
+          <View
             className="absolute w-[100px] h-[100px] rounded-[50px] bg-white/[0.02]"
             style={{ top: height * 0.3, right: 30 }}
           />
@@ -185,20 +208,18 @@ export default function RegisterStep1() {
             </View>
           </View>
 
-            {/* Form Fields */}
-            <View className="px-6 flex-1">
+          {/* Form Fields */}
+          <View className="px-6 flex-1">
             {/* Nome */}
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Nome</Text>
               <TextInput
-              className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
-              placeholder="Digite seu nome"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={formData.nome}
-              onChangeText={(text) => handleInputChange("nome", text)}
-              autoCapitalize="words"
-              returnKeyType="done"
-              blurOnSubmit={true}
+                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                placeholder="Digite seu nome"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={formData.nome}
+                onChangeText={(text) => handleInputChange("nome", text)}
+                autoCapitalize="words"
               />
             </View>
 
@@ -206,14 +227,26 @@ export default function RegisterStep1() {
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Sobrenome</Text>
               <TextInput
-              className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
-              placeholder="Digite seu sobrenome"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={formData.sobrenome}
-              onChangeText={(text) => handleInputChange("sobrenome", text)}
-              autoCapitalize="words"
-              returnKeyType="done"
-              blurOnSubmit={true}
+                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                placeholder="Digite seu sobrenome"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={formData.sobrenome}
+                onChangeText={(text) => handleInputChange("sobrenome", text)}
+                autoCapitalize="words"
+              />
+            </View>
+
+            {/* Email */}
+            <View className="mb-5">
+              <Text className="text-white/70 text-sm mb-2 ml-1">Email</Text>
+              <TextInput
+                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                placeholder="Digite seu email"
+                placeholderTextColor="rgba(255,255,255,0.4)"
+                value={formData.email}
+                onChangeText={(text) => handleInputChange("email", text)}
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
             </View>
 
@@ -221,20 +254,18 @@ export default function RegisterStep1() {
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Data de Nascimento</Text>
               <View className="relative">
-              <TextInput
-                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                placeholder="DD/MM/AAAA"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={formData.dataNascimento}
-                onChangeText={(text) => handleInputChange("dataNascimento", text)}
-                keyboardType="numeric"
-                maxLength={10}
-                returnKeyType="done"
-                blurOnSubmit={true}
-              />
-              <View className="absolute right-4 top-4">
-                <Text className="text-white/40 text-lg">📅</Text>
-              </View>
+                <TextInput
+                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
+                  placeholder="DD/MM/AAAA"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={formData.dataNascimento}
+                  onChangeText={(text) => handleInputChange("dataNascimento", text)}
+                  keyboardType="numeric"
+                  maxLength={10}
+                />
+                <View className="absolute right-4 top-4">
+                  <Text className="text-white/40 text-lg">📅</Text>
+                </View>
               </View>
             </View>
 
@@ -242,20 +273,18 @@ export default function RegisterStep1() {
             <View className="mb-8">
               <Text className="text-white/70 text-sm mb-2 ml-1">CPF</Text>
               <View className="relative">
-              <TextInput
-              className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-              placeholder="000.000.000-00"
-              placeholderTextColor="rgba(255,255,255,0.4)"
-              value={formData.cpf}
-              onChangeText={(text) => handleInputChange("cpf", text)}
-              keyboardType="numeric"
-              maxLength={14}
-              returnKeyType="done"
-              blurOnSubmit={true}
-              />
-              <View className="absolute right-4 top-4">
-              <Text className="text-white/40 text-lg">📄</Text>
-              </View>
+                <TextInput
+                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
+                  placeholder="000.000.000-00"
+                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  value={formData.cpf}
+                  onChangeText={(text) => handleInputChange("cpf", text)}
+                  keyboardType="numeric"
+                  maxLength={14}
+                />
+                <View className="absolute right-4 top-4">
+                  <Text className="text-white/40 text-lg">📄</Text>
+                </View>
               </View>
             </View>
 
