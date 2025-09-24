@@ -1,16 +1,11 @@
-import SearchScreen from '@/components/search/search-bar-maps';
-import { SearchLocation } from '@/types/location';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import { StatusBar } from 'expo-status-bar';
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  Alert,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import MapView, { Marker, Polyline, Polygon, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -27,19 +22,7 @@ interface LocationCoords {
 }
 
 
-type MapHandle = {
-  centerOn: (coords: { latitude: number; longitude: number }) => void;
-};
-
-type Props = {
-  onMapPress?: (coords: { latitude: number; longitude: number }) => void;
-  onMapLongPress?: (coords: { latitude: number; longitude: number }) => void;
-  onMarkerPress?: (marker: { id?: string; name?: string; latitude: number; longitude: number; isDraft?: boolean }) => void;
-  markers?: { id: string; name?: string; latitude: number; longitude: number }[];
-  selectedPoint?: { latitude: number; longitude: number } | null;
-};
-
-const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, onMarkerPress, markers, selectedPoint }, ref) => {
+export default function MapScreen() {
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [projectAreaCenter, setProjectAreaCenter] = useState<LocationCoords | null>(null);
   const [projectArea, setProjectArea] = useState<ProjectArea | null>(null);
@@ -155,7 +138,7 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
   };
 
   const generateRoute = () => {
-    const start = location; // Sempre usa a localização atual como início
+    const start = location; // Always use current location as start
     const dest = destinationLocation?.coordinates || destination;
 
     if (start && dest) {
@@ -240,7 +223,7 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
     <View className="flex-1 bg-white">
       <StatusBar style="dark" />
 
-      {/* Barra de Pesquisa */}
+      {/* Search Bar */}
       <View className="absolute top-16 left-4 right-4 z-10 bg-white rounded-full shadow-lg elevation-4 px-4 py-4 flex-row items-center">
         <TouchableOpacity
           className="flex-row items-center flex-1"
@@ -262,7 +245,7 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
         )}
       </View>
 
-      {/* Mapa */}
+      {/* Map */}
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
@@ -270,14 +253,6 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
         showsUserLocation={true}
         showsMyLocationButton={false}
         followsUserLocation={isNavigating}
-        onPress={(e) => {
-          const c = e.nativeEvent.coordinate;
-          onMapPress && onMapPress({ latitude: c.latitude, longitude: c.longitude });
-        }}
-        onLongPress={(e) => {
-          const c = e.nativeEvent.coordinate;
-          onMapLongPress && onMapLongPress({ latitude: c.latitude, longitude: c.longitude });
-        }}
       >
         {/* Project Area Polygon */}
         {projectArea && (
@@ -294,41 +269,20 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
           <Marker
             coordinate={location}
             title="Sua localização"
-            pinColor="#60b954ff"
+            pinColor="#00D4FF"
           />
         )}
 
-
-        {/* Destino */}
+        {/* Destination Marker */}
         {destinationLocation?.coordinates && (
           <Marker
             coordinate={destinationLocation.coordinates}
             title={destinationLocation.description}
-            pinColor="#00a6ffff"
+            pinColor="#FF5722"
           />
         )}
 
-        {/* Propriedades */}
-        {Array.isArray(markers) && markers.map((m) => (
-          <Marker
-            key={m.id}
-            coordinate={{ latitude: m.latitude, longitude: m.longitude }}
-            title={m.name || 'Propriedade'}
-            pinColor="#cc0000ff"
-            onPress={() => onMarkerPress && onMarkerPress({ id: m.id, name: m.name, latitude: m.latitude, longitude: m.longitude })}
-          />
-        ))}
-
-        {selectedPoint && (
-          <Marker
-            coordinate={selectedPoint}
-            title="Ponto selecionado"
-            pinColor="#ff9800"
-            onPress={() => onMarkerPress && onMarkerPress({ latitude: selectedPoint.latitude, longitude: selectedPoint.longitude, isDraft: true })}
-          />
-        )}
-
-        {/* Rota */}
+        {/* Route Polyline */}
         {routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
@@ -338,7 +292,7 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
         )}
       </MapView>
 
-      {/* Navegação */}
+      {/* Navigation Controls */}
       {destination && !isNavigating && (
         <View className="absolute bottom-24 left-4 right-4 z-10">
           <TouchableOpacity className="bg-green-500 flex-row items-center justify-center py-4 rounded-3xl shadow-2xl elevation-6" onPress={startNavigation}>
@@ -348,7 +302,7 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
         </View>
       )}
 
-      {/* Cancelar Navegação */}
+      {/* Cancel Navigation */}
       {isNavigating && (
         <View className="absolute bottom-24 left-4 right-4 z-10">
           <TouchableOpacity className="bg-red-600 flex-row items-center justify-center py-4 rounded-3xl shadow-2xl elevation-6" onPress={cancelNavigation}>
@@ -358,7 +312,7 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
         </View>
       )}
 
-      {/* Pesquisa */}
+      {/* Search Screen Bottom Sheet */}
       <SearchScreen
         visible={showSearchScreen}
         onDestinationSelect={handleDestinationSelect}
@@ -367,7 +321,4 @@ const MapScreen = forwardRef<MapHandle, Props>(({ onMapPress, onMapLongPress, on
       />
     </View>
   );
-});
-
-export default MapScreen;
-
+}

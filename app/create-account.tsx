@@ -1,16 +1,15 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
-  Alert,
-  Animated,
-  Dimensions,
-  Keyboard,
-  StatusBar,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  StatusBar,
+  Animated,
+  Dimensions,
+  Alert,
 } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
 
@@ -28,8 +27,6 @@ export default function RegisterStep2() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const senhaRef = useRef(null);
-  const confirmarRef = useRef(null);
 
   useEffect(() => {
     Animated.parallel([
@@ -46,9 +43,11 @@ export default function RegisterStep2() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-  };
+  type FormDataKeys = keyof typeof formData;
+
+const handleInputChange = (field: FormDataKeys, value: string) => {
+  setFormData({ ...formData, [field]: value });
+};
 
   const validatePassword = (password: string) => {
     if (password.length < 8) {
@@ -92,37 +91,54 @@ export default function RegisterStep2() {
   };
 
   const handleFinish = async () => {
-    if (validateForm()) {
-      setIsLoading(true);
-      
-      try {
-        const userData = {
-          nome: params.nome,
-          sobrenome: params.sobrenome,
-          dataNascimento: params.dataNascimento,
-          cpf: params.cpf,
-          senha: formData.senha,
-        };
+  if (!validateForm()) return;
 
-  await new Promise(resolve => setTimeout(resolve, 2000));
-        Alert.alert(
-          "Sucesso!",
-          "Conta criada com sucesso!",
-          [
-            {
-              text: "OK",
-              onPress: () => router.push("/main" as any)
-            }
-          ]
-        );
-        
-      } catch (error) {
-        Alert.alert("Erro", "Ocorreu um erro ao criar a conta. Tente novamente.");
-      } finally {
-        setIsLoading(false);
-      }
+  setIsLoading(true);
+
+  try {
+    const userData = {
+      nome: params.nome,
+      sobrenome: params.sobrenome,
+      data_nascimento: params.dataNascimento, 
+      cpf: params.cpf,
+      email: params.email, 
+      password: formData.senha,
+    };
+
+    const response = await fetch("/auth/register",  {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Usuário criado:", data);
+      Alert.alert(
+        "Sucesso!",
+        "Conta criada com sucesso!",
+        [
+          { text: "OK", onPress: () => router.push("/") }
+        ]
+      );
+    } else {
+      const errorData = await response.json();
+      Alert.alert(
+        "Erro",
+        errorData.detail || "Ocorreu um erro ao criar a conta."
+      );
     }
-  };
+
+  } catch (error) {
+    console.error("Erro ao chamar API:", error);
+    Alert.alert("Erro", "Ocorreu um erro na comunicação com o servidor.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const handleBack = () => {
     router.back();
@@ -150,7 +166,8 @@ export default function RegisterStep2() {
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-
+        
+        {/* Background Pattern */}
         <View className="absolute" style={{ width, height }}>
           <View 
             className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
@@ -173,7 +190,7 @@ export default function RegisterStep2() {
             transform: [{ translateY: slideAnim }],
           }}
         >
-
+          {/* Header */}
           <View className="flex-row items-center px-6 pt-[50px] pb-8">
             <TouchableOpacity
               onPress={handleBack}
@@ -187,6 +204,7 @@ export default function RegisterStep2() {
             </Text>
           </View>
 
+          {/* Welcome Section */}
           <View className="items-center mb-8">
             <View className="w-24 h-24 rounded-full bg-[#00D4FF] justify-center items-center mb-4">
               <Text className="text-white text-3xl">🔒</Text>
@@ -199,8 +217,9 @@ export default function RegisterStep2() {
             </Text>
           </View>
 
+          {/* Form Fields */}
           <View className="px-6 flex-1">
-
+            {/* Senha */}
             <View className="mb-5">
               <Text className="text-white/70 text-sm mb-2 ml-1">Senha</Text>
               <View className="relative">
@@ -210,10 +229,6 @@ export default function RegisterStep2() {
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={formData.senha}
                   onChangeText={(text) => handleInputChange("senha", text)}
-                  ref={senhaRef}
-                  returnKeyType="next"
-                  blurOnSubmit={false}
-                  onSubmitEditing={() => { if (confirmarRef.current) (confirmarRef.current as any).focus(); }}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
@@ -228,6 +243,7 @@ export default function RegisterStep2() {
                 </TouchableOpacity>
               </View>
               
+              {/* Password Strength Indicator */}
               {formData.senha.length > 0 && (
                 <View className="mt-3">
                   <View className="flex-row justify-between items-center mb-2">
@@ -256,6 +272,7 @@ export default function RegisterStep2() {
               )}
             </View>
 
+            {/* Confirmar Senha */}
             <View className="mb-8">
               <Text className="text-white/70 text-sm mb-2 ml-1">Confirmar Senha</Text>
               <View className="relative">
@@ -265,9 +282,6 @@ export default function RegisterStep2() {
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={formData.confirmarSenha}
                   onChangeText={(text) => handleInputChange("confirmarSenha", text)}
-                  ref={confirmarRef}
-                  returnKeyType="done"
-                  onSubmitEditing={() => { Keyboard.dismiss(); handleFinish(); }}
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
                 />
@@ -282,6 +296,7 @@ export default function RegisterStep2() {
                 </TouchableOpacity>
               </View>
               
+              {/* Password Match Indicator */}
               {formData.confirmarSenha.length > 0 && (
                 <View className="mt-2">
                   <Text 
@@ -300,6 +315,7 @@ export default function RegisterStep2() {
               )}
             </View>
 
+            {/* Password Requirements */}
             <View className="bg-white/5 rounded-2xl p-4 mb-8">
               <Text className="text-white/80 text-sm font-medium mb-3">
                 Sua senha deve conter:
@@ -317,6 +333,7 @@ export default function RegisterStep2() {
               </View>
             </View>
 
+            {/* Finish Button */}
             <View className="mt-auto pb-15">
               <TouchableOpacity
                 className={`rounded-2xl py-[18px] px-8 items-center ${
