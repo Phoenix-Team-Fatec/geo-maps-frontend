@@ -45,9 +45,9 @@ export default function RegisterStep2() {
 
   type FormDataKeys = keyof typeof formData;
 
-const handleInputChange = (field: FormDataKeys, value: string) => {
-  setFormData({ ...formData, [field]: value });
-};
+  const handleInputChange = (field: FormDataKeys, value: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
 
   const validatePassword = (password: string) => {
     if (password.length < 8) {
@@ -91,53 +91,49 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
   };
 
   const handleFinish = async () => {
-  if (!validateForm()) return;
+    if (!validateForm()) return;
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    const userData = {
-      nome: params.nome,
-      sobrenome: params.sobrenome,
-      data_nascimento: params.dataNascimento, 
-      cpf: params.cpf,
-      email: params.email, 
-      password: formData.senha,
-    };
+    try {
+      const userData = {
+        nome: params.nome,
+        sobrenome: params.sobrenome,
+        data_nascimento: params.dataNascimento,
+        cpf: params.cpf,
+        email: params.email,
+        password: formData.senha,
+      };
 
-    const response = await fetch("/auth/register",  {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
+      const response = await fetch("/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log("Usuário criado:", data);
-      Alert.alert(
-        "Sucesso!",
-        "Conta criada com sucesso!",
-        [
-          { text: "OK", onPress: () => router.push("/") }
-        ]
-      );
-    } else {
-      const errorData = await response.json();
-      Alert.alert(
-        "Erro",
-        errorData.detail || "Ocorreu um erro ao criar a conta."
-      );
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Usuário criado:", data);
+        Alert.alert("Sucesso!", "Conta criada com sucesso!", [
+          { text: "OK", onPress: () => router.push("/") },
+        ]);
+      } else {
+        const errorData = await response.json();
+        Alert.alert(
+          "Erro",
+          errorData.detail || "Ocorreu um erro ao criar a conta."
+        );
+      }
+
+    } catch (error) {
+      console.error("Erro ao chamar API:", error);
+      Alert.alert("Erro", "Ocorreu um erro na comunicação com o servidor.");
+    } finally {
+      setIsLoading(false);
     }
-
-  } catch (error) {
-    console.error("Erro ao chamar API:", error);
-    Alert.alert("Erro", "Ocorreu um erro na comunicação com o servidor.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   const handleBack = () => {
@@ -147,7 +143,7 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
   const getPasswordStrength = () => {
     const password = formData.senha;
     if (password.length === 0) return { strength: 0, color: "transparent", text: "" };
-    
+
     let score = 0;
     if (password.length >= 8) score++;
     if (/(?=.*[a-z])/.test(password)) score++;
@@ -166,18 +162,18 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-        
+
         {/* Background Pattern */}
         <View className="absolute" style={{ width, height }}>
-          <View 
+          <View
             className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
             style={{ top: -50, right: -50 }}
           />
-          <View 
+          <View
             className="absolute w-[150px] h-[150px] rounded-[75px] bg-[#00D4FF]/[0.03]"
             style={{ bottom: 100, left: -30 }}
           />
-          <View 
+          <View
             className="absolute w-[100px] h-[100px] rounded-[50px] bg-white/[0.02]"
             style={{ top: height * 0.3, right: 30 }}
           />
@@ -242,13 +238,13 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
+
               {/* Password Strength Indicator */}
               {formData.senha.length > 0 && (
                 <View className="mt-3">
                   <View className="flex-row justify-between items-center mb-2">
                     <Text className="text-white/60 text-xs">Força da senha:</Text>
-                    <Text 
+                    <Text
                       className="text-xs font-medium"
                       style={{ color: passwordStrength.color }}
                     >
@@ -261,8 +257,8 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
                         key={level}
                         className="flex-1 h-1 rounded-full"
                         style={{
-                          backgroundColor: level <= passwordStrength.strength 
-                            ? passwordStrength.color 
+                          backgroundColor: level <= passwordStrength.strength
+                            ? passwordStrength.color
                             : 'rgba(255,255,255,0.1)'
                         }}
                       />
@@ -295,20 +291,20 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              
+
               {/* Password Match Indicator */}
               {formData.confirmarSenha.length > 0 && (
                 <View className="mt-2">
-                  <Text 
+                  <Text
                     className="text-xs ml-1"
-                    style={{ 
-                      color: formData.senha === formData.confirmarSenha 
-                        ? "#2ed573" 
-                        : "#ff4757" 
+                    style={{
+                      color: formData.senha === formData.confirmarSenha
+                        ? "#2ed573"
+                        : "#ff4757"
                     }}
                   >
-                    {formData.senha === formData.confirmarSenha 
-                      ? "✓ Senhas coincidem" 
+                    {formData.senha === formData.confirmarSenha
+                      ? "✓ Senhas coincidem"
                       : "✗ Senhas não coincidem"}
                   </Text>
                 </View>
@@ -336,9 +332,8 @@ const handleInputChange = (field: FormDataKeys, value: string) => {
             {/* Finish Button */}
             <View className="mt-auto pb-15">
               <TouchableOpacity
-                className={`rounded-2xl py-[18px] px-8 items-center ${
-                  isLoading ? 'bg-white/20' : 'bg-[#03acceff]'
-                }`}
+                className={`rounded-2xl py-[18px] px-8 items-center ${isLoading ? 'bg-white/20' : 'bg-[#03acceff]'
+                  }`}
                 onPress={handleFinish}
                 activeOpacity={0.8}
                 disabled={isLoading}
