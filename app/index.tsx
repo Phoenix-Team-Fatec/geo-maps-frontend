@@ -31,8 +31,12 @@ export default function IndexScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const handleLogin = () => {
+  const handleCreateAccount = () => {
     router.push("/create-profile");
+  };
+
+  const handleLogin = () => {
+    router.push("/login");
   };
 
   const handleContinueWithoutLogin = () => {
@@ -117,6 +121,23 @@ export default function IndexScreen() {
           <View className="mt-auto">
             <TouchableOpacity
               className="bg-[#03acceff] mb-4 rounded-2xl py-[18px] px-8 items-center"
+              onPress={handleCreateAccount}
+              activeOpacity={0.8}
+              style={{
+                shadowColor: "#00D4FF",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
+              }}
+            >
+              <Text style={{ fontSize: 18, color: "white" }}>
+                Crie sua conta
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="bg-[#03acceff] mb-4 rounded-2xl py-[18px] px-8 items-center"
               onPress={handleLogin}
               activeOpacity={0.8}
               style={{
@@ -127,9 +148,9 @@ export default function IndexScreen() {
                 elevation: 8,
               }}
             >
-            <Text style={{ fontSize: 18, color: "white" }}>
-              Crie sua conta
-            </Text>
+              <Text style={{ fontSize: 18, color: "white" }}>
+                Login
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity

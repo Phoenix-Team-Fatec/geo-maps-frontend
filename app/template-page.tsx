@@ -1,5 +1,5 @@
 
-     {/* TELA DE PLACE HOLDER PARA A TELA INICIAL, PODE SER UMSADO COMO TEMPLATE PARA AS OUTRAS TELAS DO APP */}
+{/* TELA DE PLACE HOLDER PARA A TELA INICIAL, PODE SER UMSADO COMO TEMPLATE PARA AS OUTRAS TELAS DO APP */ }
 
 import React, { useRef, useEffect } from "react";
 import {
@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useAuth } from "@/auth/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -18,6 +19,7 @@ export default function BlankPageTemplate() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+  const { user } = useAuth();
 
   useEffect(() => {
     Animated.parallel([
@@ -34,11 +36,15 @@ export default function BlankPageTemplate() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
+  useEffect(() => {
+    console.log(user)
+  })
+
   return (
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-        
+
 
         <Animated.View
           className="flex-1"
@@ -67,9 +73,9 @@ export default function BlankPageTemplate() {
           {/* Bottom Navigation */}
           <View className="bg-black/20 border-t border-white/10 pb-15">
             <View className="flex-row justify-around py-3 px-4">
-              
+
               {/* Home */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
                 onPress={() => router.push("/main" as any)}
@@ -81,7 +87,7 @@ export default function BlankPageTemplate() {
               </TouchableOpacity>
 
               {/* Search */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
                 onPress={() => router.push("/search" as any)}
@@ -93,7 +99,7 @@ export default function BlankPageTemplate() {
               </TouchableOpacity>
 
               {/* Map */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
                 onPress={() => router.push("/map")}
@@ -105,7 +111,7 @@ export default function BlankPageTemplate() {
               </TouchableOpacity>
 
               {/* Routes */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
                 onPress={() => router.push("/routes")}
@@ -117,7 +123,7 @@ export default function BlankPageTemplate() {
               </TouchableOpacity>
 
               {/* Profile */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 className="items-center justify-center flex-1 py-2"
                 activeOpacity={0.7}
                 onPress={() => router.push("/profile")}
