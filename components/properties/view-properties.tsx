@@ -1,5 +1,6 @@
 import React from 'react';
 import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
 
 type Property = {
   id: string;
@@ -7,6 +8,13 @@ type Property = {
   latitude: number;
   longitude: number;
 };
+
+interface ReadProperty{
+  cod_imovel: string;
+  num_area: number;
+  municipio: string;
+  cod_estado: string;
+}
 
 type Props = {
   visible: boolean;
@@ -17,44 +25,109 @@ type Props = {
 };
 
 export default function ViewPropertiesModal({ visible, onClose, properties, onCenter, onDelete }: Props) {
+  
+  const [user_properties, setUserProperties] = useState([]); 
+  
+  const [user_cpf, setUserCpf] = useState<string>()
+
+  const fetchProperties = async () => {
+      try{
+
+        // 133.154.569-25
+
+        // setUserCpf("002.277.387-80")
+        
+        setUserCpf("377.894.127-52")
+
+        // setUserCpf("133.154.569-25")
+
+        const response = await fetch(`/area_imovel/properties/${user_cpf}`,{
+          method: "GET"
+        })
+        
+        if (response.ok){
+          const response_json = await response.json()
+          
+          setUserProperties(response_json)
+
+          console.log(response_json)
+          
+        }
+      }catch(error){
+        console.log(`Erro ao listar propriedades: ${error}`)
+      }
+  }
+
+
+  useEffect(() => {
+    fetchProperties()
+  }, [user_cpf])
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Propriedades</Text>
-          <FlatList
-            data={properties}
-            keyExtractor={(i) => i.id}
-            renderItem={({ item }) => (
-              <View style={styles.itemRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.itemTitle}>{item.name || 'Sem nome'}</Text>
-                  <Text style={styles.itemSubtitle}>{item.latitude.toFixed(6)}, {item.longitude.toFixed(6)}</Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity style={styles.centerButton} onPress={() => onCenter && onCenter({ latitude: item.latitude, longitude: item.longitude })}>
-                    <Text style={styles.centerText}>Ver</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.deleteButton} onPress={() => {
-                    Alert.alert('Excluir', 'Deseja excluir esta propriedade?', [
-                      { text: 'Cancelar', style: 'cancel' },
-                      { text: 'Excluir', style: 'destructive', onPress: () => onDelete && onDelete(item.id) }
-                    ]);
-                  }}>
-                    <Text style={styles.deleteText}>Excluir</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            ListEmptyComponent={() => <Text style={{ color: '#999' }}>Nenhuma propriedade cadastrada</Text>}
-          />
-
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeText}>Fechar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
+  <View style={styles.backdrop}>
+    <View style={styles.container}>
+      <Text style={styles.title}>Propriedades ({user_properties.length})</Text>
+      <FlatList
+        data={user_properties}
+        keyExtractor={(item, index) => item.id || index.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.itemRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.itemTitle}>
+                {item.properties.municipio} - {item.properties.cod_estado}
+              </Text>
+              <Text style={styles.itemSubtitle}>
+                Área: {item.properties.num_area}m² 
+              </Text>
+              <Text style={styles.itemSubtitle}>
+                Código: {item.properties.cod_imovel?.slice(-12) || 'N/A'}
+              </Text>
+              {/* Coordenadas - primeiro ponto do polígono */}
+              {item.geometry.coordinates[0] && item.geometry.coordinates[0][0] && (
+                <Text style={styles.itemSubtitle}>
+                  Coordenadas: {item.geometry.coordinates[0][0][0].toFixed(6)}, {item.geometry.coordinates[0][0][1].toFixed(6)}
+                </Text>
+              )}
+               <Text style={styles.itemSubtitle}>
+                {item.pluscode 
+                  ? `Plus Code: ${item.pluscode.pluscode_cod}${item.pluscode.surname ? ` (${item.pluscode.surname})` : ''}` 
+                  : 'Pluscode não adicionado'
+                }
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {/* <TouchableOpacity 
+                style={styles.centerButton} 
+                onPress={() => {
+                  // Usar o primeiro ponto do polígono como centro
+                  if (item.geometry.coordinates[0] && item.geometry.coordinates[0][0]) {
+                    const longitude = item.geometry.coordinates[0][0][0];
+                    const latitude = item.geometry.coordinates[0][0][1];
+                    onCenter && onCenter({ latitude, longitude });
+                  }
+                }}
+              >
+                <Text style={styles.centerText}>Ver no mapa</Text>
+              </TouchableOpacity> */}
+            </View>
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: '#999', textAlign: 'center' }}>
+              Nenhuma propriedade cadastrada
+            </Text>
+          </View>
+        )}
+        showsVerticalScrollIndicator={false}
+      />
+      <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <Text style={styles.closeText}>Fechar</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
   );
 }
 
