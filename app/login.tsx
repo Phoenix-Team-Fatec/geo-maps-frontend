@@ -72,7 +72,7 @@ export default function Login() {
     setIsLoading(true);
     try {
       await login(formData.email, formData.senha);
-      router.replace("/template-page");
+      router.replace("/(tabs)/map");
     } catch (e: any) {
       const msg = String(e?.message || e);
       if (msg.toLowerCase().includes("credenciais")) {

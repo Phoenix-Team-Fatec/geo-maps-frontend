@@ -6,7 +6,7 @@ type User = {
   nome: string;
   sobrenome: string;
   email: string;
-  cpf?: string;
+  cpf: string;
   image?: string;
   data_nascimento: string;
 };
