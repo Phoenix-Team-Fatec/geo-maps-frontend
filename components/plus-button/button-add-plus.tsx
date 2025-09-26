@@ -74,7 +74,7 @@ export default function ButtonAddPlus({ onAdd, onList }: Props) {
                         onPress={handleAdd}
                     >
                         <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
-                            Adicionar Propriedade
+                            Adicionar PlusCode
                         </Text>
                     </TouchableHighlight>
                     <TouchableHighlight

@@ -1,14 +1,16 @@
 import MapScreen from '@/components/map/map-screen';
+const MapScreenAny: any = MapScreen;
 import ButtonAddPlusRN from '@/components/plus-button/button-add-plus';
-import AddPropertiesModal from '@/components/properties/add-properties';
+import AddPropertiesModal from '@/components/properties/add-pluscode';
 import ViewPropertiesModal from '@/components/properties/view-properties';
 import { addProperty, removeProperty, subscribe } from '@/src/services/propertiesStore';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, TouchableOpacity, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function PropertiesScreen() {
-  const mapRef = useRef<any>(null);
+  const router = useRouter();
   const [showAdd, setShowAdd] = useState(false);
   const [showList, setShowList] = useState(false);
   const [properties, setProperties] = useState<Array<any>>([]);
@@ -17,15 +19,14 @@ export default function PropertiesScreen() {
   const [allowClipboardPrompt, setAllowClipboardPrompt] = useState(false);
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
-    // Do not open the add modal on simple tap. We'll allow the user to choose a point (selectedPoint)
-    // and open the add modal only when they tap a marker.
     setPendingCoords(coords);
     setPendingAddress(undefined);
     setAllowClipboardPrompt(false);
+    // Mostrar pin e notificar o usuário
+    Alert.alert('Coordenadas Registradas');
   };
 
   const handleMapLongPress = (coords: { latitude: number; longitude: number }) => {
-    // Long-press creates a draft pin (selected point) and prefetch address
     setPendingCoords(coords);
     setAllowClipboardPrompt(false);
     (async () => {
@@ -36,23 +37,21 @@ export default function PropertiesScreen() {
       } catch {
         setPendingAddress(undefined);
       }
-      // Keep the draft pin visible; do not open modal automatically. User should tap the pin to open the add modal.
     })();
   };
 
   const handleCreate = (item: any) => {
-
-    addProperty(item);  
-    if (mapRef.current && mapRef.current.centerOn) {
-      mapRef.current.centerOn({ latitude: item.latitude, longitude: item.longitude });
-    }
+    addProperty(item);
+    // navigate to the map tab and let it center based on params
+    // pass coords as params
+    // using router like handleCenter
+    // router.push({ pathname: '/(tabs)/map', params: { lat: String(item.latitude), lng: String(item.longitude) } });
     setShowAdd(false);
     setPendingCoords(null);
     setPendingAddress(undefined);
   };
 
   const handleMarkerPress = (marker: { id?: string; name?: string; latitude: number; longitude: number; isDraft?: boolean }) => {
-    // When a marker is pressed, open the add modal prefilled with that marker's coords
     setPendingCoords({ latitude: marker.latitude, longitude: marker.longitude });
     setPendingAddress(undefined);
     (async () => {
@@ -69,9 +68,7 @@ export default function PropertiesScreen() {
   };
 
   const handleCenter = (coords: { latitude: number; longitude: number }) => {
-    if (mapRef.current && mapRef.current.centerOn) {
-      mapRef.current.centerOn(coords);
-    }
+    router.push({ pathname: '/(tabs)/map', params: { lat: String(coords.latitude), lng: String(coords.longitude) } });
     setShowList(false);
   };
 
@@ -91,11 +88,23 @@ export default function PropertiesScreen() {
 
       <View className='flex-1'>
         <View className='flex-1 w-full rounded-xl overflow-hidden'>
-          <MapScreen ref={mapRef} onMapPress={handleMapPress} onMapLongPress={handleMapLongPress} onMarkerPress={handleMarkerPress} markers={properties} selectedPoint={pendingCoords} />
+          <MapScreenAny onMapPress={handleMapPress} onMapLongPress={handleMapLongPress} onMarkerPress={handleMarkerPress} markers={properties} selectedPoint={pendingCoords} />
         </View>
       </View>
 
       <Text className='text-white/60 mt-4 text-center'>📍Selecione a localização no mapa para abrir o cadastro</Text>
+
+      {/* Se o usuário clicou no mapa, mostramos um botão para adicionar PlusCode */}
+      {pendingCoords ? (
+        <View className='items-center mt-4'>
+          <TouchableOpacity
+            onPress={() => { setShowAdd(true); setAllowClipboardPrompt(false); }}
+            style={{ backgroundColor: '#03acce', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 10 }}
+          >
+            <Text style={{ color: '#000', fontWeight: '700' }}>Adicionar PlusCode</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
   <ButtonAddPlusRN onAdd={() => { setAllowClipboardPrompt(true); setShowAdd(true); }} onList={() => setShowList(true)} />
 
