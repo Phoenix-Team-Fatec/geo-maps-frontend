@@ -1,6 +1,17 @@
+//@ts-ignore
 import React from 'react';
 import { Alert, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/auth/AuthContext';
+
+function formatarCPF(cpf: string){
+
+  cpf = cpf.replace(/[^\d]/g, "") 
+
+  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+
+}
+
 
 type Property = {
   id: string;
@@ -30,16 +41,16 @@ export default function ViewPropertiesModal({ visible, onClose, properties, onCe
   
   const [user_cpf, setUserCpf] = useState<string>()
 
+  const {user} = useAuth()
+
   const fetchProperties = async () => {
       try{
 
-        // 133.154.569-25
-
-        // setUserCpf("002.277.387-80")
+        let cpf = formatarCPF(user.cpf)
         
-        setUserCpf("377.894.127-52")
+        setUserCpf(cpf)
 
-        // setUserCpf("133.154.569-25")
+        console.log('Olaaaa')
 
         const response = await fetch(`/area_imovel/properties/${user_cpf}`,{
           method: "GET"
@@ -97,19 +108,6 @@ export default function ViewPropertiesModal({ visible, onClose, properties, onCe
               </Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {/* <TouchableOpacity 
-                style={styles.centerButton} 
-                onPress={() => {
-                  // Usar o primeiro ponto do polígono como centro
-                  if (item.geometry.coordinates[0] && item.geometry.coordinates[0][0]) {
-                    const longitude = item.geometry.coordinates[0][0][0];
-                    const latitude = item.geometry.coordinates[0][0][1];
-                    onCenter && onCenter({ latitude, longitude });
-                  }
-                }}
-              >
-                <Text style={styles.centerText}>Ver no mapa</Text>
-              </TouchableOpacity> */}
             </View>
           </View>
         )}
