@@ -36,22 +36,16 @@ type Props = {
 };
 
 export default function ViewPropertiesModal({ visible, onClose, properties, onCenter, onDelete }: Props) {
-  
   const [user_properties, setUserProperties] = useState([]); 
-  
   const [user_cpf, setUserCpf] = useState<string>()
 
   const {user} = useAuth()
 
   const fetchProperties = async () => {
       try{
-
-        let cpf = formatarCPF(user.cpf)
         
-        setUserCpf(cpf)
-
-        console.log('Olaaaa')
-
+        setUserCpf(formatarCPF(user.cpf)) 
+        
         const response = await fetch(`/area_imovel/properties/${user_cpf}`,{
           method: "GET"
         })
