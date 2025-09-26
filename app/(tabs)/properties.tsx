@@ -6,17 +6,26 @@ import { addProperty, removeProperty, subscribe } from '@/src/services/propertie
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
+import { Link, useRouter } from "expo-router";
+import { useAuth } from '@/auth/AuthContext';
+
+function formatarCPF(cpf: string) {
+  cpf = cpf.replace(/[^\d]/g, ""); 
+  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+}
 
 export default function PropertiesScreen() {
+  const { user } = useAuth();
+  const [userCpf, setUserCpf] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [showList, setShowList] = useState(false);
-  const [properties, setProperties] = useState<Array<any>>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [pendingCoords, setPendingCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [pendingAddress, setPendingAddress] = useState<string | undefined>(undefined);
   const [allowClipboardPrompt, setAllowClipboardPrompt] = useState(false);
   const [showButton, setShowButton] = useState(false)
-
+  
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
     // Do not open the add modal on simple tap. We'll allow the user to choose a point (selectedPoint)
     // and open the add modal only when they tap a marker.
@@ -85,6 +94,29 @@ export default function PropertiesScreen() {
     return unsub;
   }, []);
 
+  const fetchProperties = async (cpf: string) => {
+    try {
+      const response = await fetch(`/area_imovel/properties/${cpf}`, {
+        method: "GET",
+      });
+
+      if (response.ok) {
+        const response_json = await response.json();
+        setProperties(response_json); // aqui já é a lista de features
+        console.log("Propriedades carregadas:", response_json);
+      }
+    } catch (error) {
+      console.log(`Erro ao carregar propriedades: ${error}`);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.cpf) {
+      const formatted = formatarCPF(user.cpf);
+      setUserCpf(formatted);
+      fetchProperties(formatted);
+    }
+  }, [user]);
 
   useEffect(() => {
     
@@ -95,34 +127,68 @@ export default function PropertiesScreen() {
     return () => clearTimeout(timer)
   },[])
 
-  return (
-    <View className='flex-1 bg-[#1a1a2e] p-4'>
-      <StatusBar style="light" />
-  <Text className='text-white text-xl font-semibold mt-8 mb-'>Propriedades</Text>
+return (
+  <View className="flex-1 bg-[#1a1a2e] p-4">
+    <StatusBar style="light" />
 
-      <View className='flex-1'>
-        <View className='flex-1 w-full rounded-xl overflow-hidden'>
-          <MapScreen ref={mapRef} onMapPress={handleMapPress} onMapLongPress={handleMapLongPress} onMarkerPress={handleMarkerPress} markers={properties} selectedPoint={pendingCoords} />
-        </View>
+    <Text className="text-white text-xl font-semibold mt-8 mb-">
+      Propriedades
+    </Text>
+
+    <View className="flex-1">
+      <View className="flex-1 w-full rounded-xl overflow-hidden">
+        <MapScreen
+          ref={mapRef}
+          onMapPress={handleMapPress}
+          onMapLongPress={handleMapLongPress}
+          onMarkerPress={handleMarkerPress}
+          markers={properties}
+          selectedPoint={pendingCoords}
+          userProperties={properties} 
+        />
       </View>
+    </View>
 
-      <Text className='text-white/60 mt-4 text-center'>📍Selecione a localização no mapa para abrir o cadastro</Text>
+    <Text className="text-white/60 mt-4 text-center">
+      📍Selecione a localização no mapa para abrir o cadastro
+    </Text>
 
-  {showButton && (
-    <ButtonAddPlusRN onAdd={() => { setAllowClipboardPrompt(true); setShowAdd(true); }} onList={() => setShowList(true)} />
+    {showButton && (
+      <ButtonAddPlusRN
+        onAdd={() => {
+          setAllowClipboardPrompt(true);
+          setShowAdd(true);
+        }}
+        onList={() => setShowList(true)}
+      />
     )}
 
-      <AddPropertiesModal
-        visible={showAdd}
-        onClose={() => { setShowAdd(false); setPendingCoords(null); setPendingAddress(undefined); setAllowClipboardPrompt(false); }}
-        onCreated={(item) => { handleCreate(item); setAllowClipboardPrompt(false); }}
-        initialLatitude={pendingCoords?.latitude}
-        initialLongitude={pendingCoords?.longitude}
-        initialAddress={pendingAddress}
-        showClipboardPrompt={allowClipboardPrompt}
-      />
+    <AddPropertiesModal
+      visible={showAdd}
+      onClose={() => {
+        setShowAdd(false);
+        setPendingCoords(null);
+        setPendingAddress(undefined);
+        setAllowClipboardPrompt(false);
+      }}
+      onCreated={(item) => {
+        handleCreate(item);
+        setAllowClipboardPrompt(false);
+      }}
+      initialLatitude={pendingCoords?.latitude}
+      initialLongitude={pendingCoords?.longitude}
+      initialAddress={pendingAddress}
+      showClipboardPrompt={allowClipboardPrompt}
+    />
 
-  <ViewPropertiesModal visible={showList} onClose={() => setShowList(false)} properties={properties} onCenter={handleCenter} onDelete={handleDelete} />
-    </View>
-  );
+    <ViewPropertiesModal
+      visible={showList}
+      onClose={() => setShowList(false)}
+      properties={properties}
+      onCenter={handleCenter}
+      onDelete={handleDelete}
+    />
+  </View>
+);
+
 }
