@@ -17,11 +17,14 @@ type Props = {
 // função que faz POST no backend criando um PlusCode
 async function createPlusCode(codImovel: string, lat: number, lng: number, ownerName?: string) {
   const body = {
+    surname: '',
     cod_imovel: codImovel,
-    owner_name: ownerName || 'Usuário',
+    owner_email: ownerName || 'Usuário',
     pluscode_cod: "", // obrigatório, backend vai sobrescrever
     cordinates: { longitude: lng, latitude: lat }, // "cordinates" com "r"
   };
+
+  console.log(body)
 
   const resp = await fetch(`/area_imovel/properties/${codImovel}/pluscode`, {
     method: 'POST',
@@ -42,10 +45,9 @@ export default function AddPropertiesModal({ visible, onClose, codImovel, onCrea
   const [isSaving, setIsSaving] = useState(false); // controla loading do botão
   const { user } = useAuth();                      // pega usuário do contexto
 
-  // nome do dono usado no PlusCode
-  const ownerName =
-    (user?.nome && user?.sobrenome) ? `${user.nome} ${user.sobrenome}`.trim()
-    : (user?.nome || user?.email || 'Usuário');
+  // email do dono usado no PlusCode
+  const ownerName = user?.email || '';
+
 
   // opção 1: usar localização atual do celular
 const handleUseMyLocation = async () => {
@@ -106,6 +108,8 @@ const handleUseMyLocation = async () => {
 
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
+
+    console.log(`Longitude: ${lng}  | Latitude: ${lat}`)
 
     const saved = await createPlusCode(codImovel, lat, lng, ownerName);
     onCreated && onCreated(saved);
