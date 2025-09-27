@@ -1,14 +1,12 @@
-import { setupNetworking } from '../services/networking';
-setupNetworking();
-
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import SplashScreen from '@/components/initial-screen/splash-screen';
 import { setGlobalFont, useAppFonts } from '@/config/font-config';
 import { AuthProvider } from '@/auth/AuthContext';
-import '../global.css';
-import { StackScreen } from 'react-native-screens';
+import { setupNetworking } from '../services/networking';
 
+import '../global.css';
+setupNetworking();
 
 export default function RootLayout() {
   const [isShowingSplash, setIsShowingSplash] = useState(true);
@@ -45,7 +43,6 @@ export default function RootLayout() {
         <Stack.Screen name="create-profile" />
         <Stack.Screen name="login" />
         <Stack.Screen name="template-page" />
-        <Stack.Screen name="main" />
       </Stack>
     </AuthProvider>
   );

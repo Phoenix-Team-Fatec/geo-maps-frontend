@@ -143,8 +143,11 @@ export default function SearchScreen({
         onDestinationSelect(location);
         setSearchResults([]);
         closeBottomSheet();
+      } else {
+        Alert.alert('Erro', 'Não foi possível obter coordenadas do local');
       }
     } catch (error) {
+      console.error('Location select error:', error);
       Alert.alert('Erro', 'Não foi possível obter detalhes do local');
     } finally {
       setIsLoading(false);

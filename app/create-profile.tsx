@@ -8,10 +8,13 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
+const isSmallDevice = width < 380;
+const isTinyDevice = width < 350;
 
 export default function RegisterStep1() {
   const router = useRouter();
@@ -183,7 +186,7 @@ export default function RegisterStep1() {
           }}
         >
           {/* Header */}
-          <View className="flex-row items-center px-6 pt-[50px] pb-8">
+          <View className={`flex-row items-center ${isSmallDevice ? 'px-4' : 'px-6'} ${Platform.OS === 'ios' ? 'pt-12' : 'pt-8'} pb-6`}>
             <TouchableOpacity
               onPress={handleBack}
               className="w-10 h-10 rounded-full bg-white/10 justify-center items-center mr-4"
@@ -191,7 +194,9 @@ export default function RegisterStep1() {
             >
               <Text className="text-white text-lg">←</Text>
             </TouchableOpacity>
-            <Text className="text-white text-xl font-semibold">
+            <Text
+              className={`text-white ${isSmallDevice ? 'text-lg' : 'text-xl'} font-semibold`}
+            >
               Criar Conta - Etapa 1
             </Text>
           </View>
@@ -209,12 +214,16 @@ export default function RegisterStep1() {
           </View>
 
           {/* Form Fields */}
-          <View className="px-6 flex-1">
+          <View className={`${isSmallDevice ? 'px-4' : 'px-6'} flex-1`}>
             {/* Nome */}
             <View className="mb-5">
-              <Text className="text-white/70 text-sm mb-2 ml-1">Nome</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                Nome
+              </Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
                 placeholder="Digite seu nome"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.nome}
@@ -225,9 +234,13 @@ export default function RegisterStep1() {
 
             {/* Sobrenome */}
             <View className="mb-5">
-              <Text className="text-white/70 text-sm mb-2 ml-1">Sobrenome</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                Sobrenome
+              </Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
                 placeholder="Digite seu sobrenome"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.sobrenome}
@@ -238,9 +251,13 @@ export default function RegisterStep1() {
 
             {/* Email */}
             <View className="mb-5">
-              <Text className="text-white/70 text-sm mb-2 ml-1">Email</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                Email
+              </Text>
               <TextInput
-                className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base"
+                className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
                 placeholder="Digite seu email"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.email}
@@ -252,11 +269,15 @@ export default function RegisterStep1() {
 
             {/* Data de Nascimento */}
             <View className="mb-5">
-              <Text className="text-white/70 text-sm mb-2 ml-1">Data de Nascimento</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                Data de Nascimento
+              </Text>
               <View className="relative">
                 <TextInput
-                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                  placeholder="DD/MM/AAAA"
+                  className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'} pr-12`}
+                    placeholder="DD/MM/AAAA"
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={formData.dataNascimento}
                   onChangeText={(text) => handleInputChange("dataNascimento", text)}
@@ -271,11 +292,15 @@ export default function RegisterStep1() {
 
             {/* CPF */}
             <View className="mb-8">
-              <Text className="text-white/70 text-sm mb-2 ml-1">CPF</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                CPF
+              </Text>
               <View className="relative">
                 <TextInput
-                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                  placeholder="000.000.000-00"
+                  className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'} pr-12`}
+                    placeholder="000.000.000-00"
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={formData.cpf}
                   onChangeText={(text) => handleInputChange("cpf", text)}
@@ -289,9 +314,9 @@ export default function RegisterStep1() {
             </View>
 
             {/* Next Button */}
-            <View className="mt-auto pb-15">
+            <View className={`mt-auto ${Platform.OS === 'ios' ? 'pb-8' : 'pb-6'}`}>
               <TouchableOpacity
-                className="bg-[#03acceff] rounded-2xl py-[18px] px-8 items-center"
+                className={`bg-[#03acceff] rounded-2xl ${isSmallDevice ? 'py-4' : 'py-[18px]'} px-8 items-center`}
                 onPress={handleNext}
                 activeOpacity={0.8}
                 style={{
@@ -300,9 +325,12 @@ export default function RegisterStep1() {
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
                   elevation: 8,
+                  minHeight: isSmallDevice ? 48 : 54,
                 }}
               >
-                <Text className="text-white text-lg font-semibold">
+                <Text
+                  className={`text-white ${isTinyDevice ? 'text-base' : 'text-lg'} font-semibold`}
+                    >
                   Próximo
                 </Text>
               </TouchableOpacity>

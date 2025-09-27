@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import SearchScreen from '@/components/search/search-bar-maps';
 import { SearchLocation } from '@/types/location';
 import { loadFullProjectArea, ProjectArea } from '@/utils/geojson';
+import { GoogleMapsAPI } from '@/services/google-maps-api';
 
 interface LocationCoords {
   latitude: number;
@@ -121,35 +122,32 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
     }
   };
 
-  const simulateRoute = (start: LocationCoords, end: LocationCoords) => {
-    const steps = 20;
-    const route: LocationCoords[] = [];
-
-    for (let i = 0; i <= steps; i++) {
-      const ratio = i / steps;
-      const lat = start.latitude + (end.latitude - start.latitude) * ratio;
-      const lng = start.longitude + (end.longitude - start.longitude) * ratio;
-      route.push({ latitude: lat, longitude: lng });
+  const generateRouteWithDirections = async (start: LocationCoords, end: LocationCoords) => {
+    try {
+      const routePoints = await GoogleMapsAPI.getDirections(start, end);
+      setRouteCoordinates(routePoints);
+    } catch (error) {
+      console.error('Error generating route:', error);
+      // Fallback to straight line
+      const fallbackRoute = [start, end];
+      setRouteCoordinates(fallbackRoute);
     }
-
-    return route;
   };
 
   const handleDestinationSelect = (searchLocation: SearchLocation) => {
     setDestinationLocation(searchLocation);
     if (searchLocation.coordinates) {
       setDestination(searchLocation.coordinates);
+      generateRoute(searchLocation.coordinates);
     }
-    generateRoute();
   };
 
-  const generateRoute = () => {
+  const generateRoute = async (dest?: LocationCoords) => {
     const start = location;
-    const dest = destinationLocation?.coordinates || destination;
+    const destination = dest || destinationLocation?.coordinates;
 
-    if (start && dest) {
-      const route = simulateRoute(start, dest);
-      setRouteCoordinates(route);
+    if (start && destination) {
+      await generateRouteWithDirections(start, destination);
     }
   };
 
@@ -340,7 +338,7 @@ const handleMapPress = (e: any) => {
 
       {/* Navigation Controls */}
       {destination && !isNavigating && (
-        <View className="absolute bottom-24 left-4 right-4 z-10">
+        <View className="absolute bottom-8 left-4 right-4 z-10">
           <TouchableOpacity
             className="bg-green-500 flex-row items-center justify-center py-4 rounded-3xl shadow-2xl elevation-6"
             onPress={startNavigation}
@@ -353,7 +351,7 @@ const handleMapPress = (e: any) => {
 
       {/* Cancel Navigation */}
       {isNavigating && (
-        <View className="absolute bottom-24 left-4 right-4 z-10">
+        <View className="absolute bottom-8 left-4 right-4 z-10">
           <TouchableOpacity
             className="bg-red-600 flex-row items-center justify-center py-4 rounded-3xl shadow-2xl elevation-6"
             onPress={cancelNavigation}
