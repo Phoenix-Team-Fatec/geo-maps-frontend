@@ -21,7 +21,12 @@ type Props = {
   onGeneratePlusCode?: (property: any) => void;
 };
 
-export default function ViewPropertiesModal({ visible, onClose, onCenter, onGeneratePlusCode }: Props) {
+export default function ViewPropertiesModal({
+  visible,
+  onClose,
+  onCenter,
+  onGeneratePlusCode,
+}: Props) {
   const [userProperties, setUserProperties] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
   const { user } = useAuth();
@@ -54,9 +59,13 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
             data={userProperties}
             keyExtractor={(item, index) => item.id || index.toString()}
             renderItem={({ item }) => {
-              const coords = item.geometry?.coordinates?.[0]?.[0] || [0, 0];
-              const lng = coords[0];
-              const lat = coords[1];
+              // Pega um ponto do anel externo (serve p/ Polygon e MultiPolygon)
+              const coords =
+                item.geometry?.type === 'MultiPolygon'
+                  ? item.geometry?.coordinates?.[0]?.[0]?.[0]
+                  : item.geometry?.coordinates?.[0]?.[0];
+
+              const [lng, lat] = Array.isArray(coords) ? coords : [0, 0];
 
               return (
                 <View style={styles.itemRow}>
@@ -81,7 +90,7 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
                     <TouchableOpacity
                       style={styles.centerButton}
                       onPress={() => {
-                        if (onCenter) {
+                        if (onCenter && Number.isFinite(lat) && Number.isFinite(lng)) {
                           onCenter({ latitude: lat, longitude: lng });
                           onClose();
                         }
@@ -89,13 +98,13 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
                     >
                       <Text style={styles.centerText}>Ver no mapa</Text>
                     </TouchableOpacity>
+
                     <TouchableOpacity
                       style={[styles.centerButton, { backgroundColor: '#10b981' }]} // verde
                       onPress={() => onGeneratePlusCode && onGeneratePlusCode(item)}
                     >
                       <Text style={[styles.centerText, { color: '#000' }]}>Gerar Plus Code</Text>
                     </TouchableOpacity>
-
                   </View>
                 </View>
               );
@@ -138,19 +147,25 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
               <Text style={styles.detailsTextLine}>
                 Código: {selectedProperty.properties.cod_imovel}
               </Text>
-              {selectedProperty.geometry?.coordinates?.[0]?.[0] && (
-                <Text style={styles.detailsTextLine}>
-                  Coordenadas:{' '}
-                  {selectedProperty.geometry.coordinates[0][0][0].toFixed(6)},{' '}
-                  {selectedProperty.geometry.coordinates[0][0][1].toFixed(6)}
-                </Text>
-              )}
+
+              {/* Exibe o mesmo ponto usado no botão */}
+              {(() => {
+                const c =
+                  selectedProperty.geometry?.type === 'MultiPolygon'
+                    ? selectedProperty.geometry?.coordinates?.[0]?.[0]?.[0]
+                    : selectedProperty.geometry?.coordinates?.[0]?.[0];
+                const [lng, lat] = Array.isArray(c) ? c : [null, null];
+                return Number.isFinite(lat) && Number.isFinite(lng) ? (
+                  <Text style={styles.detailsTextLine}>
+                    Coordenadas: {Number(lng).toFixed(6)}, {Number(lat).toFixed(6)}
+                  </Text>
+                ) : null;
+              })()}
+
               <Text style={styles.detailsTextLine}>
                 {selectedProperty.pluscode
                   ? `Plus Code: ${selectedProperty.pluscode.pluscode_cod}${
-                      selectedProperty.pluscode.surname
-                        ? ` (${selectedProperty.pluscode.surname})`
-                        : ''
+                      selectedProperty.pluscode.surname ? ` (${selectedProperty.pluscode.surname})` : ''
                     }`
                   : 'Pluscode não adicionado'}
               </Text>

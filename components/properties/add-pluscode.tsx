@@ -125,20 +125,6 @@ const handleUseMyLocation = async () => {
     onClose();
   };
 
-  // opção 3: calcular centro da propriedade
-  const handleCenterProperty = async () => {
-    if (!onCenterProperty) {
-      Alert.alert('Indisponível', 'Não foi possível calcular o centro da propriedade.');
-      return;
-    }
-
-    const center = onCenterProperty();
-    if (center) {
-      const saved = await createPlusCode(codImovel, center.lat, center.lng, ownerName);
-      onCreated && onCreated(saved);
-      onClose();
-    }
-  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent>
@@ -158,11 +144,6 @@ const handleUseMyLocation = async () => {
             {/* selecionar no mapa */}
             <TouchableOpacity style={styles.option} onPress={handleSelectOnMap}>
               <Text style={styles.optionText}>🗺️ Selecionar no mapa</Text>
-            </TouchableOpacity>
-
-            {/* centro da propriedade */}
-            <TouchableOpacity style={styles.option} onPress={handleCenterProperty}>
-              <Text style={styles.optionText}>🏠 Centro da propriedade</Text>
             </TouchableOpacity>
 
             {/* cancelar */}

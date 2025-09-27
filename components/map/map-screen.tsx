@@ -187,7 +187,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
     setRouteCoordinates([]);
   };
 
-  // 👉 quando propriedades do usuário carregarem, centralizar no primeiro polígono
+  //  quando propriedades do usuário carregarem, centralizar no primeiro polígono
   useEffect(() => {
     if (userProperties.length > 0 && mapRef.current) {
       const [lng, lat] = userProperties[0].geometry.coordinates[0][0]; // primeiro ponto do polígono
