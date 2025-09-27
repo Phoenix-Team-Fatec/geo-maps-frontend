@@ -1,3 +1,4 @@
+// @ts-ignore
 import React, { useState, useEffect } from 'react';
 import {
   FlatList,
@@ -14,26 +15,45 @@ function formatarCPF(cpf: string) {
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 }
 
+type Property = {
+  id: string;
+  name?: string;
+  latitude: number;
+  longitude: number;
+};
+
 type Props = {
   visible: boolean;
   onClose: () => void;
+  properties: Property[];
   onCenter?: (coords: { latitude: number; longitude: number }) => void;
-  onGeneratePlusCode?: (property: any) => void;
+  onDelete?: (id: string) => void;
 };
 
-export default function ViewPropertiesModal({ visible, onClose, onCenter, onGeneratePlusCode }: Props) {
-  const [userProperties, setUserProperties] = useState<any[]>([]);
+export default function ViewPropertiesModal({
+  visible,
+  onClose,
+  onCenter,
+}: Props) {
+  const [user_properties, setUserProperties] = useState<any[]>([]);
+  const [user_cpf, setUserCpf] = useState<string>();
   const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
+
   const { user } = useAuth();
 
   const fetchProperties = async () => {
     try {
       const formatted = formatarCPF(user.cpf);
-      const response = await fetch(`/area_imovel/properties/${formatted}`, { method: 'GET' });
+      setUserCpf(formatted);
+
+      const response = await fetch(`/area_imovel/properties/${formatted}`, {
+        method: 'GET',
+      });
+
       if (response.ok) {
-        const data = await response.json();
-        setUserProperties(data);
-        console.log(data);
+        const response_json = await response.json();
+        setUserProperties(response_json);
+        console.log(response_json);
       }
     } catch (error) {
       console.log(`Erro ao listar propriedades: ${error}`);
@@ -41,17 +61,18 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
   };
 
   useEffect(() => {
-    if (user?.cpf) fetchProperties();
+    if (user?.cpf) {
+      fetchProperties();
+    }
   }, [user]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.container}>
-          <Text style={styles.title}>Propriedades ({userProperties.length})</Text>
-
+          <Text style={styles.title}>Propriedades ({user_properties.length})</Text>
           <FlatList
-            data={userProperties}
+            data={user_properties}
             keyExtractor={(item, index) => item.id || index.toString()}
             renderItem={({ item }) => {
               const coords = item.geometry?.coordinates?.[0]?.[0] || [0, 0];
@@ -63,6 +84,9 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
                   <View style={{ flex: 1 }}>
                     <Text style={styles.itemTitle}>
                       {item.properties.municipio} - {item.properties.cod_estado}
+                    </Text>
+                    <Text style={styles.itemSubtitle}>
+                      Área: {item.properties.num_area}m²
                     </Text>
                     <Text style={styles.itemSubtitle}>
                       Código: {item.properties.cod_imovel?.slice(-12) || 'N/A'}
@@ -89,13 +113,6 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
                     >
                       <Text style={styles.centerText}>Ver no mapa</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.centerButton, { backgroundColor: '#10b981' }]} // verde
-                      onPress={() => onGeneratePlusCode && onGeneratePlusCode(item)}
-                    >
-                      <Text style={[styles.centerText, { color: '#000' }]}>Gerar Plus Code</Text>
-                    </TouchableOpacity>
-
                   </View>
                 </View>
               );
@@ -107,15 +124,15 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
                 </Text>
               </View>
             )}
+            showsVerticalScrollIndicator={false}
           />
-
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeText}>Fechar</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Modal de detalhes */}
+      {/* Modal de Detalhes */}
       {selectedProperty && (
         <Modal
           visible={!!selectedProperty}
@@ -125,7 +142,7 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
         >
           <View style={styles.detailsBackdrop}>
             <View style={styles.detailsContainer}>
-              <Text style={styles.detailsTitle}>Detalhes</Text>
+              <Text style={styles.detailsTitle}>Detalhes da Propriedade</Text>
               <Text style={styles.detailsTextLine}>
                 Município: {selectedProperty.properties.municipio}
               </Text>
@@ -140,8 +157,7 @@ export default function ViewPropertiesModal({ visible, onClose, onCenter, onGene
               </Text>
               {selectedProperty.geometry?.coordinates?.[0]?.[0] && (
                 <Text style={styles.detailsTextLine}>
-                  Coordenadas:{' '}
-                  {selectedProperty.geometry.coordinates[0][0][0].toFixed(6)},{' '}
+                  Coordenadas: {selectedProperty.geometry.coordinates[0][0][0].toFixed(6)},{' '}
                   {selectedProperty.geometry.coordinates[0][0][1].toFixed(6)}
                 </Text>
               )}
@@ -212,6 +228,7 @@ const styles = StyleSheet.create({
   },
   closeText: { color: '#fff', fontWeight: '700' },
 
+  // estilos para modal de detalhes
   detailsBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',

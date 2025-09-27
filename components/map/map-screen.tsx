@@ -21,10 +21,13 @@ interface LocationCoords {
 }
 
 type MapScreenProps = {
-  userProperties?: any[]; // propriedades do usuário
+  userProperties?: any[];
+  pickMode?: boolean; // quando true, o clique no mapa devolve coords
+  onMapPick?: (coords: { latitude: number; longitude: number }) => void; // callback
 };
 
-export default function MapScreen({ userProperties = [] }: MapScreenProps) {
+
+export default function MapScreen({ userProperties = [], pickMode = false, onMapPick }: MapScreenProps) {
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [projectAreaCenter, setProjectAreaCenter] = useState<LocationCoords | null>(null);
   const [projectArea, setProjectArea] = useState<ProjectArea | null>(null);
@@ -246,6 +249,12 @@ export default function MapScreen({ userProperties = [] }: MapScreenProps) {
         longitudeDelta: 0.02,
       };
 
+const handleMapPress = (e: any) => {
+  if (!pickMode) return;
+  const { latitude, longitude } = e.nativeEvent.coordinate;
+  onMapPick && onMapPick({ latitude, longitude });
+};
+
   return (
     <View className="flex-1 bg-white">
       <StatusBar style="dark" />
@@ -277,6 +286,7 @@ export default function MapScreen({ userProperties = [] }: MapScreenProps) {
         showsUserLocation={true}
         showsMyLocationButton={false}
         followsUserLocation={isNavigating}
+        onPress={handleMapPress}
       >
         {/* Project Area Polygon */}
         {projectArea && (
