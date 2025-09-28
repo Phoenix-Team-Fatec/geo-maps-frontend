@@ -9,6 +9,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,6 +18,8 @@ import { StyleSheet } from "react-native";
 import { useAuth } from "../auth/AuthContext";
 
 const { width, height } = Dimensions.get("window");
+const isSmallDevice = width < 380;
+const isTinyDevice = width < 350;
 
 export default function Login() {
   const router = useRouter();
@@ -105,37 +108,49 @@ export default function Login() {
         style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
       >
         {/* Header */}
-        <View className="flex-row items-center px-6 pt-[50px] pb-6">
+        <View className={`flex-row items-center ${isSmallDevice ? 'px-4' : 'px-6'} ${Platform.OS === 'ios' ? 'pt-12' : 'pt-8'} pb-6`}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.push("/")}
             className="w-10 h-10 rounded-full bg-white/10 justify-center items-center mr-4"
             activeOpacity={0.7}
           >
             <ArrowLeft size={22} color="white" />
           </TouchableOpacity>
-          <Text className="text-white text-xl font-semibold">Entrar</Text>
+          <Text
+            className={`text-white ${isSmallDevice ? 'text-lg' : 'text-xl'} font-semibold`}
+          >
+            Entrar
+          </Text>
         </View>
 
         {/* Welcome */}
-        <View className="items-center mb-10">
-          <Text className="text-white text-3xl font-bold mb-2">
+        <View className={`items-center ${isSmallDevice ? 'mb-8' : 'mb-10'}`}>
+          <Text
+            className={`text-white ${isSmallDevice ? 'text-2xl' : 'text-3xl'} font-bold mb-2`}
+          >
             Bem-vindo de volta
           </Text>
-          <Text className="text-white/60 text-base text-center px-8">
+          <Text
+            className={`text-white/60 ${isTinyDevice ? 'text-sm' : 'text-base'} text-center ${isSmallDevice ? 'px-4' : 'px-8'}`}
+          >
             Acesse sua conta para continuar
           </Text>
         </View>
 
         {/* Form */}
-        <View className="px-6 flex-1">
+        <View className={`${isSmallDevice ? 'px-4' : 'px-6'} flex-1`}>
           {/* Email */}
           <View className="mb-5">
-            <Text className="text-white/70 text-sm mb-2 ml-1">E-mail</Text>
+            <Text
+              className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+              E-mail
+            </Text>
             <View className="flex-row items-center bg-white/10 border border-white/15 rounded-2xl px-4">
               <Mail size={18} color="rgba(255,255,255,0.6)" />
               <TextInput
-                className="flex-1 py-4 px-3 text-white text-base"
-                placeholder="seu@email.com"
+                className={`flex-1 ${isSmallDevice ? 'py-3' : 'py-4'} px-3 text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
+                    placeholder="seu@email.com"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.email}
                 onChangeText={(t) => handleInputChange("email", t)}
@@ -164,12 +179,16 @@ export default function Login() {
 
           {/* Senha */}
           <View className="mb-6">
-            <Text className="text-white/70 text-sm mb-2 ml-1">Senha</Text>
+            <Text
+              className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+              Senha
+            </Text>
             <View className="flex-row items-center bg-white/10 border border-white/15 rounded-2xl px-4">
               <Lock size={18} color="rgba(255,255,255,0.6)" />
               <TextInput
-                className="flex-1 py-4 px-3 text-white text-base"
-                placeholder="Digite sua senha"
+                className={`flex-1 ${isSmallDevice ? 'py-3' : 'py-4'} px-3 text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
+                    placeholder="Digite sua senha"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.senha}
                 onChangeText={(t) => handleInputChange("senha", t)}
@@ -187,7 +206,7 @@ export default function Login() {
           </View>
 
           {/* Botão Entrar */}
-          <View className="mt-auto pb-10">
+          <View className={`mt-auto ${Platform.OS === 'ios' ? 'pb-8' : 'pb-6'}`}>
             <TouchableOpacity
               className="rounded-2xl overflow-hidden"
               onPress={handleLogin}
@@ -198,29 +217,46 @@ export default function Login() {
                 colors={isLoading ? ["#475569", "#475569"] : ["#06b6d4", "#3b82f6"]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                className="py-[18px] items-center justify-center"
+                style={{
+                  paddingVertical: isSmallDevice ? 16 : 20,
+                  paddingHorizontal: 32,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: isSmallDevice ? 56 : 64,
+                }}
               >
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text className="text-white text-lg font-semibold">
+                  <Text
+                    className={`text-white ${isTinyDevice ? 'text-base' : 'text-lg'} font-semibold`}
+                    style={{
+                      textAlign: 'center'
+                    }}
+                  >
                     Entrar
                   </Text>
                 )}
               </LinearGradient>
             </TouchableOpacity>
 
-            <Text className="text-xs text-white/50 text-center leading-4 px-5 mt-4">
+            <Text
+              className={`${isTinyDevice ? 'text-2xs' : 'text-xs'} text-white/50 text-center leading-4 ${isSmallDevice ? 'px-3' : 'px-5'} mt-4`}
+              >
               Ao entrar, você concorda com nossos Termos de Serviço e Política de
               Privacidade
             </Text>
 
             <View className="flex-row justify-center mt-6">
-              <Text className="text-white/60 text-xs mr-1">
+              <Text
+                className={`text-white/60 ${isTinyDevice ? 'text-2xs' : 'text-xs'} mr-1`}
+                  >
                 Ainda não tem uma conta?
               </Text>
               <TouchableOpacity onPress={() => router.push("/create-profile")}>
-                <Text className="text-cyan-400 text-xs font-medium">
+                <Text
+                  className={`text-cyan-400 ${isTinyDevice ? 'text-2xs' : 'text-xs'} font-medium`}
+                      >
                   Criar conta
                 </Text>
               </TouchableOpacity>

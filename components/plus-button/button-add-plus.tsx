@@ -71,15 +71,6 @@ export default function ButtonAddPlus({ onAdd, onList }: Props) {
                     <TouchableHighlight
                         style={styles.menuItem}
                         underlayColor="#e0f7fa"
-                        onPress={handleAdd}
-                    >
-                        <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
-                            Adicionar Propriedade
-                        </Text>
-                    </TouchableHighlight>
-                    <TouchableHighlight
-                        style={styles.menuItem}
-                        underlayColor="#e0f7fa"
                         onPress={handleList}
                     >
                         <Text style={styles.menuText} numberOfLines={1} ellipsizeMode="tail">
