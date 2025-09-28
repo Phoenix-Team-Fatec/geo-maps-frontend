@@ -27,8 +27,8 @@ const FORM_FIELDS = {
   nome: { label: "Nome", placeholder: "Digite seu nome", keyboardType: "default", autoCapitalize: "words" },
   sobrenome: { label: "Sobrenome", placeholder: "Digite seu sobrenome", keyboardType: "default", autoCapitalize: "words" },
   email: { label: "Email", placeholder: "Digite seu email", keyboardType: "email-address", autoCapitalize: "none" },
-  dataNascimento: { label: "Data de Nascimento", placeholder: "DD/MM/AAAA", keyboardType: "numeric", maxLength: 10, icon: "📅" },
-  cpf: { label: "CPF", placeholder: "000.000.000-00", keyboardType: "numeric", maxLength: 14, icon: "📄" },
+  dataNascimento: { label: "Data de Nascimento", placeholder: "DD/MM/AAAA", keyboardType: "numeric", maxLength: 10, icon: "📅", autoCapitalize: "none" },
+  cpf: { label: "CPF", placeholder: "000.000.000-00", keyboardType: "numeric", maxLength: 14, icon: "📄", autoCapitalize: "none" },
 } as const;
 
 // Types
@@ -151,6 +151,7 @@ const BackgroundPattern = React.memo(() => (
     />
   </View>
 ));
+BackgroundPattern.displayName = 'BackgroundPattern';
 
 const Header = React.memo(({ onBack }: { onBack: () => void }) => (
   <View className={`flex-row items-center ${DEVICE_CONFIG.isSmallDevice ? 'px-4' : 'px-6'} ${DEVICE_CONFIG.isIOS ? 'pt-12' : 'pt-8'} pb-4`}>
@@ -166,6 +167,7 @@ const Header = React.memo(({ onBack }: { onBack: () => void }) => (
     </Text>
   </View>
 ));
+Header.displayName = 'Header';
 
 const Avatar = React.memo(() => (
   <View className="items-center mb-6">
@@ -179,15 +181,16 @@ const Avatar = React.memo(() => (
     </TouchableOpacity>
   </View>
 ));
+Avatar.displayName = 'Avatar';
 
-interface FormFieldProps {
+interface FormFieldComponentProps {
   field: FormField;
   value: string;
   onChangeText: (field: FormField, value: string) => void;
   onFocus: (field: FormField) => void;
 }
 
-const FormField = React.memo(({ field, value, onChangeText, onFocus }: FormFieldProps) => {
+const FormFieldComponent = React.memo(({ field, value, onChangeText, onFocus }: FormFieldComponentProps) => {
   const config = FORM_FIELDS[field];
   
   return (
@@ -197,18 +200,18 @@ const FormField = React.memo(({ field, value, onChangeText, onFocus }: FormField
       </Text>
       <View className="relative">
         <TextInput
-          className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${DEVICE_CONFIG.isSmallDevice ? 'py-3' : 'py-4'} text-white ${DEVICE_CONFIG.isTinyDevice ? 'text-sm' : 'text-base'} ${config.icon ? 'pr-12' : ''}`}
+          className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${DEVICE_CONFIG.isSmallDevice ? 'py-3' : 'py-4'} text-white ${DEVICE_CONFIG.isTinyDevice ? 'text-sm' : 'text-base'} ${'icon' in config && config.icon ? 'pr-12' : ''}`}
           placeholder={config.placeholder}
           placeholderTextColor="rgba(255,255,255,0.4)"
           value={value}
           onChangeText={(text) => onChangeText(field, text)}
           onFocus={() => onFocus(field)}
           keyboardType={config.keyboardType as any}
-          autoCapitalize={config.autoCapitalize as any}
-          maxLength={config.maxLength}
+          autoCapitalize={'autoCapitalize' in config ? config.autoCapitalize as any : 'none'}
+          maxLength={'maxLength' in config ? config.maxLength : undefined}
           returnKeyType="next"
         />
-        {config.icon && (
+        {'icon' in config && config.icon && (
           <View className="absolute right-4 top-4">
             <Text className="text-white/40 text-lg">{config.icon}</Text>
           </View>
@@ -217,6 +220,7 @@ const FormField = React.memo(({ field, value, onChangeText, onFocus }: FormField
     </View>
   );
 });
+FormFieldComponent.displayName = 'FormFieldComponent';
 
 const NextButton = React.memo(({ onPress }: { onPress: () => void }) => (
   <View className="mt-auto pb-8">
@@ -239,6 +243,7 @@ const NextButton = React.memo(({ onPress }: { onPress: () => void }) => (
     </TouchableOpacity>
   </View>
 ));
+NextButton.displayName = 'NextButton';
 
 export default function RegisterStep1() {
   const router = useRouter();
@@ -370,7 +375,7 @@ export default function RegisterStep1() {
 
               <View className={`${DEVICE_CONFIG.isSmallDevice ? 'px-4' : 'px-6'} flex-1`}>
                 {(Object.keys(FORM_FIELDS) as FormField[]).map((field) => (
-                  <FormField
+                  <FormFieldComponent
                     key={field}
                     field={field}
                     value={formData[field]}

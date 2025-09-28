@@ -1,6 +1,7 @@
 import MapScreen from '@/components/map/map-screen';
 import { subscribe } from '@/src/services/propertiesStore';
 import React, { useEffect, useState } from 'react';
+import RouteProtection from '@/components/auth/RouteProtection';
 
 export default function MapTab() {
   const [markers, setMarkers] = useState<any[]>([]);
@@ -10,5 +11,9 @@ export default function MapTab() {
     return unsub;
   }, []);
 
-  return <MapScreen markers={markers} />;
+  return (
+    <RouteProtection allowGuest={true}>
+      <MapScreen markers={markers} />
+    </RouteProtection>
+  );
 }

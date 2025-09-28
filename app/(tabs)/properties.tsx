@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Text, View, Modal, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '@/auth/AuthContext'; // contexto do usuário logado
+import RouteProtection from '@/components/auth/RouteProtection';
 
 // formata CPF no padrão 000.000.000-00
 function formatarCPF(cpf: string) {
@@ -104,8 +105,9 @@ export default function PropertiesScreen() {
   },[]);
 
   return (
-    <View className="flex-1 bg-[#1a1a2e]">
-      <StatusBar style="light" />
+    <RouteProtection>
+      <View className="flex-1 bg-[#1a1a2e]">
+        <StatusBar style="light" />
 
       {/* mapa principal */}
       <View className="flex-1">
@@ -284,12 +286,9 @@ export default function PropertiesScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
-        
 
-    </View>
-
-
-        
+      </View>
+    </RouteProtection>
   );
 }
 

@@ -107,7 +107,7 @@ export default function Login() {
         {/* Header */}
         <View className={`flex-row items-center ${isSmallDevice ? 'px-4' : 'px-6'} ${Platform.OS === 'ios' ? 'pt-12' : 'pt-8'} pb-6`}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => router.push("/")}
             className="w-10 h-10 rounded-full bg-white/10 justify-center items-center mr-4"
             activeOpacity={0.7}
           >
