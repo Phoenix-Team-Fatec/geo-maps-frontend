@@ -87,6 +87,9 @@ export default function Login() {
     }
   };
 
+  const gotoForgot = () =>
+    router.push({ pathname: "/forgot-password", params: { email: formData.email } });
+
   return (
     <View className="flex-1 bg-[#0F172A]">
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
@@ -140,6 +143,23 @@ export default function Login() {
                 keyboardType="email-address"
               />
             </View>
+            <Text className="text-white text-2xl font-bold mb-2">
+              Bem-vindo de volta!
+            </Text>
+            <View className="flex-row justify-center mt-6">
+              <TouchableOpacity onPress={gotoForgot} activeOpacity={0.8}>
+                <Text className="text-cyan-400 text-sm font-medium">Esqueci minha senha</Text>
+              </TouchableOpacity>
+            </View>
+            <View className="flex-row justify-center mt-6">
+              <Text className="text-white/60 text-xs mr-1">
+                Ainda não tem uma conta?
+              </Text>
+              <TouchableOpacity onPress={() => router.push("/create-profile")}>
+                <Text className="text-cyan-400 text-xs font-medium">
+                  Criar conta
+                </Text>
+              </TouchableOpacity>
           </View>
 
           {/* Senha */}
