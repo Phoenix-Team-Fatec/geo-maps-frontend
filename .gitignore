@@ -4,7 +4,6 @@
 node_modules/
 
 .env
-CLAUDE.md
 
 # Expo
 .expo/
