@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,25 +9,112 @@ import {
   Dimensions,
   Alert,
   Platform,
+  ScrollView,
+  Keyboard,
 } from "react-native";
 import { useRouter } from "expo-router";
 
+// Constants
 const { width, height } = Dimensions.get("window");
-const isSmallDevice = width < 380;
-const isTinyDevice = width < 350;
+const DEVICE_CONFIG = {
+  isSmallDevice: width < 380,
+  isTinyDevice: width < 350,
+  isIOS: Platform.OS === 'ios',
+};
 
-export default function RegisterStep1() {
-  const router = useRouter();
+// Form field configuration
+const FORM_FIELDS = {
+  nome: { label: "Nome", placeholder: "Digite seu nome", keyboardType: "default", autoCapitalize: "words" },
+  sobrenome: { label: "Sobrenome", placeholder: "Digite seu sobrenome", keyboardType: "default", autoCapitalize: "words" },
+  email: { label: "Email", placeholder: "Digite seu email", keyboardType: "email-address", autoCapitalize: "none" },
+  dataNascimento: { label: "Data de Nascimento", placeholder: "DD/MM/AAAA", keyboardType: "numeric", maxLength: 10, icon: "📅" },
+  cpf: { label: "CPF", placeholder: "000.000.000-00", keyboardType: "numeric", maxLength: 14, icon: "📄" },
+} as const;
+
+// Types
+interface FormData {
+  nome: string;
+  sobrenome: string;
+  email: string;
+  dataNascimento: string;
+  cpf: string;
+}
+
+type FormField = keyof FormData;
+
+// Utility functions
+const formatters = {
+  cpf: (text: string): string => {
+    const numbers = text.replace(/\D/g, "").slice(0, 11);
+    return numbers
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  },
+
+  date: (text: string): string => {
+    const numbers = text.replace(/\D/g, "").slice(0, 8);
+    return numbers
+      .replace(/(\d{2})(\d)/, "$1/$2")
+      .replace(/(\d{2})(\d)/, "$1/$2");
+  }
+};
+
+const validators = {
+  cpf: (raw: string): boolean => {
+    if (!raw) return false;
+    const cpf = raw.replace(/\D/g, "");
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+
+    const calc = (base: string, fatorIni: number) => {
+      let soma = 0;
+      for (let i = 0; i < base.length; i++) {
+        soma += parseInt(base[i], 10) * (fatorIni - i);
+      }
+      const resto = soma % 11;
+      return resto < 2 ? 0 : 11 - resto;
+    };
+
+    const d1 = calc(cpf.slice(0, 9), 10);
+    const d2 = calc(cpf.slice(0, 9) + d1, 11);
+    return cpf.endsWith(`${d1}${d2}`);
+  },
+
+  email: (email: string): boolean => /\S+@\S+\.\S+/.test(email),
+
+  date: (date: string): boolean => date.length === 10,
+
+  required: (value: string): boolean => value.trim().length > 0
+};
+
+// Custom hooks
+const useKeyboard = () => {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+      setIsKeyboardVisible(true);
+    });
+    
+    const hideListener = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showListener?.remove();
+      hideListener?.remove();
+    };
+  }, []);
+
+  return { keyboardHeight, isKeyboardVisible };
+};
+
+const useAnimation = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-
-  const [formData, setFormData] = useState({
-    nome: "",
-    sobrenome: "",
-    email: "",
-    dataNascimento: "",
-    cpf: "",
-  });
 
   useEffect(() => {
     Animated.parallel([
@@ -44,105 +131,194 @@ export default function RegisterStep1() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const formatCPF = (text: string): string => {
-    const numbers = text.replace(/\D/g, "");
+  return { fadeAnim, slideAnim };
+};
 
-    if (numbers.length <= 11) {
-      return numbers
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-    }
+// Components
+const BackgroundPattern = React.memo(() => (
+  <View className="absolute" style={{ width, height }}>
+    <View
+      className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
+      style={{ top: -50, right: -50 }}
+    />
+    <View
+      className="absolute w-[150px] h-[150px] rounded-[75px] bg-[#00D4FF]/[0.03]"
+      style={{ bottom: 100, left: -30 }}
+    />
+    <View
+      className="absolute w-[100px] h-[100px] rounded-[50px] bg-white/[0.02]"
+      style={{ top: height * 0.3, right: 30 }}
+    />
+  </View>
+));
 
-    return numbers.slice(0, 11)
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d)/, "$1.$2")
-      .replace(/(\d{3})(\d{2})$/, "$1-$2");
-  };
+const Header = React.memo(({ onBack }: { onBack: () => void }) => (
+  <View className={`flex-row items-center ${DEVICE_CONFIG.isSmallDevice ? 'px-4' : 'px-6'} ${DEVICE_CONFIG.isIOS ? 'pt-12' : 'pt-8'} pb-4`}>
+    <TouchableOpacity
+      onPress={onBack}
+      className="w-10 h-10 rounded-full bg-white/10 justify-center items-center mr-4"
+      activeOpacity={0.7}
+    >
+      <Text className="text-white text-lg">←</Text>
+    </TouchableOpacity>
+    <Text className={`text-white ${DEVICE_CONFIG.isSmallDevice ? 'text-lg' : 'text-xl'} font-semibold`}>
+      Criar Conta - Etapa 1
+    </Text>
+  </View>
+));
 
-  const formatDate = (text: string): string => {
-    const numbers = text.replace(/\D/g, "");
+const Avatar = React.memo(() => (
+  <View className="items-center mb-6">
+    <TouchableOpacity className="w-24 h-24 rounded-full bg-white/10 justify-center items-center border-2 border-white/15 mb-4">
+      <View className="w-12 h-12 rounded-full bg-[#00D4FF] justify-center items-center">
+        <Text className="text-white text-xl font-bold">👤</Text>
+      </View>
+      <View className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#00D4FF] justify-center items-center">
+        <Text className="text-white text-sm">✎</Text>
+      </View>
+    </TouchableOpacity>
+  </View>
+));
 
-    if (numbers.length <= 8) {
-      return numbers
-        .replace(/(\d{2})(\d)/, "$1/$2")
-        .replace(/(\d{2})(\d)/, "$1/$2");
-    }
+interface FormFieldProps {
+  field: FormField;
+  value: string;
+  onChangeText: (field: FormField, value: string) => void;
+  onFocus: (field: FormField) => void;
+}
 
-    return numbers.slice(0, 8)
-      .replace(/(\d{2})(\d)/, "$1/$2")
-      .replace(/(\d{2})(\d)/, "$1/$2");
-  };
+const FormField = React.memo(({ field, value, onChangeText, onFocus }: FormFieldProps) => {
+  const config = FORM_FIELDS[field];
+  
+  return (
+    <View className="mb-4">
+      <Text className={`text-white/70 ${DEVICE_CONFIG.isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}>
+        {config.label}
+      </Text>
+      <View className="relative">
+        <TextInput
+          className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${DEVICE_CONFIG.isSmallDevice ? 'py-3' : 'py-4'} text-white ${DEVICE_CONFIG.isTinyDevice ? 'text-sm' : 'text-base'} ${config.icon ? 'pr-12' : ''}`}
+          placeholder={config.placeholder}
+          placeholderTextColor="rgba(255,255,255,0.4)"
+          value={value}
+          onChangeText={(text) => onChangeText(field, text)}
+          onFocus={() => onFocus(field)}
+          keyboardType={config.keyboardType as any}
+          autoCapitalize={config.autoCapitalize as any}
+          maxLength={config.maxLength}
+          returnKeyType="next"
+        />
+        {config.icon && (
+          <View className="absolute right-4 top-4">
+            <Text className="text-white/40 text-lg">{config.icon}</Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+});
 
-  const handleInputChange = (field: "nome" | "sobrenome" | "email" | "dataNascimento" | "cpf", value: string) => {
+const NextButton = React.memo(({ onPress }: { onPress: () => void }) => (
+  <View className="mt-auto pb-8">
+    <TouchableOpacity
+      className={`bg-[#03acceff] rounded-2xl ${DEVICE_CONFIG.isSmallDevice ? 'py-4' : 'py-[18px]'} px-8 items-center`}
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{
+        shadowColor: "#00D4FF",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+        minHeight: DEVICE_CONFIG.isSmallDevice ? 48 : 54,
+      }}
+    >
+      <Text className={`text-white ${DEVICE_CONFIG.isTinyDevice ? 'text-base' : 'text-lg'} font-semibold`}>
+        Próximo
+      </Text>
+    </TouchableOpacity>
+  </View>
+));
+
+export default function RegisterStep1() {
+  const router = useRouter();
+  const scrollViewRef = useRef<ScrollView>(null);
+  
+  const { keyboardHeight, isKeyboardVisible } = useKeyboard();
+  const { fadeAnim, slideAnim } = useAnimation();
+  
+  const [formData, setFormData] = useState<FormData>({
+    nome: "",
+    sobrenome: "",
+    email: "",
+    dataNascimento: "",
+    cpf: "",
+  });
+
+  const handleInputChange = useCallback((field: FormField, value: string) => {
+    let formattedValue = value;
+    
     if (field === "cpf") {
-      setFormData({ ...formData, [field]: formatCPF(value) });
+      formattedValue = formatters.cpf(value);
     } else if (field === "dataNascimento") {
-      setFormData({ ...formData, [field]: formatDate(value) });
-    } else {
-      setFormData({ ...formData, [field]: value });
+      formattedValue = formatters.date(value);
     }
-  };
+    
+    setFormData(prev => ({ ...prev, [field]: formattedValue }));
+  }, []);
 
-  function isValidCPF(raw: string): boolean {
-    if (!raw) return false;
-    const cpf = raw.replace(/\D/g, "");
-    if (cpf.length !== 11) return false;
-    if (/^(\d)\1{10}$/.test(cpf)) return false;
-
-    const calc = (base: string, fatorIni: number) => {
-      let soma = 0;
-      for (let i = 0; i < base.length; i++) soma += parseInt(base[i], 10) * (fatorIni - i);
-      const resto = soma % 11;
-      return resto < 2 ? 0 : 11 - resto;
-    };
-
-    const d1 = calc(cpf.slice(0, 9), 10);
-    const d2 = calc(cpf.slice(0, 9) + d1, 11);
-    return cpf.endsWith(`${d1}${d2}`);
-  }
-
-
-  const validateForm = () => {
-    if (!formData.nome.trim()) {
-      Alert.alert("Erro", "Por favor, insira seu nome");
-      return false;
-    }
-    if (!formData.sobrenome.trim()) {
-      Alert.alert("Erro", "Por favor, insira seu sobrenome");
-      return false;
-    }
-    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
-      Alert.alert("Erro", "Por favor, insira um e-mail válido");
-      return false;
-    }
-    if (!formData.dataNascimento.trim() || formData.dataNascimento.length !== 10) {
-      Alert.alert("Erro", "Por favor, insira uma data de nascimento válida");
-      return false;
-    }
-    if (!formData.cpf.trim() || formData.cpf.length !== 14 || !isValidCPF(formData.cpf)) {
-      Alert.alert("Erro", "Por favor, insira um CPF válido");
-      return false;
-    }
-    return true;
-  };
-
-  const handleNext = () => {
-    if (validateForm()) {
-      const parts = formData.dataNascimento.split("/");
-      if (parts.length !== 3) {
-        Alert.alert("Erro", "Data de nascimento inválida");
-        return;
+  const handleInputFocus = useCallback((field: FormField) => {
+    setTimeout(() => {
+      if (scrollViewRef.current) {
+        const scrollPositions: Record<FormField, number> = {
+          nome: 0,
+          sobrenome: 50,
+          email: 200,
+          dataNascimento: 300,
+          cpf: 400,
+        };
+        
+        if (field === 'dataNascimento' || field === 'cpf') {
+          scrollViewRef.current.scrollToEnd({ animated: true });
+        } else {
+          scrollViewRef.current.scrollTo({ y: scrollPositions[field], animated: true });
+        }
       }
+    }, 300);  
+  }, []);
 
-      const [dia, mes, ano] = parts;
-      const diaFormatado = dia.padStart(2, "0");
-      const mesFormatado = mes.padStart(2, "0");
-      const dataFormatada = `${ano}-${mesFormatado}-${diaFormatado}`;
+  const validateForm = useCallback((): boolean => {
+    const validations = [
+      { condition: !validators.required(formData.nome), message: "Por favor, insira seu nome" },
+      { condition: !validators.required(formData.sobrenome), message: "Por favor, insira seu sobrenome" },
+      { condition: !validators.required(formData.email) || !validators.email(formData.email), message: "Por favor, insira um e-mail válido" },
+      { condition: !validators.required(formData.dataNascimento) || !validators.date(formData.dataNascimento), message: "Por favor, insira uma data de nascimento válida" },
+      { condition: !validators.required(formData.cpf) || formData.cpf.length !== 14 || !validators.cpf(formData.cpf), message: "Por favor, insira um CPF válido" },
+    ];
 
+    for (const validation of validations) {
+      if (validation.condition) {
+        Alert.alert("Erro", validation.message);
+        return false;
+      }
+    }
+
+    return true;
+  }, [formData]);
+
+  const formatDateForSubmission = useCallback((date: string): string => {
+    const parts = date.split("/");
+    if (parts.length !== 3) return date;
+    
+    const [dia, mes, ano] = parts;
+    return `${ano}-${mes.padStart(2, "0")}-${dia.padStart(2, "0")}`;
+  }, []);
+
+  const handleNext = useCallback(() => {
+    if (validateForm()) {
       const payload = {
         ...formData,
-        dataNascimento: dataFormatada,
+        dataNascimento: formatDateForSubmission(formData.dataNascimento),
       };
 
       router.push({
@@ -150,33 +326,28 @@ export default function RegisterStep1() {
         params: payload,
       });
     }
-  };
+  }, [formData, validateForm, formatDateForSubmission, router]);
 
-
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     router.back();
-  };
+  }, [router]);
+
+  const contentContainerStyle = useMemo(() => ({
+    flexGrow: 1,
+    paddingBottom: isKeyboardVisible ? 100 : 20
+  }), [isKeyboardVisible]);
+
+  const mainContentStyle = useMemo(() => ({
+    paddingBottom: isKeyboardVisible 
+      ? keyboardHeight - (DEVICE_CONFIG.isIOS ? 34 : 0) 
+      : 0
+  }), [isKeyboardVisible, keyboardHeight]);
 
   return (
     <View className="flex-1">
       <StatusBar barStyle="light-content" backgroundColor="#1a1a2e" />
       <View className="flex-1 bg-[#1a1a2e]">
-
-        {/* Background Pattern */}
-        <View className="absolute" style={{ width, height }}>
-          <View
-            className="absolute w-[200px] h-[200px] rounded-[100px] bg-[#00D4FF]/5"
-            style={{ top: -50, right: -50 }}
-          />
-          <View
-            className="absolute w-[150px] h-[150px] rounded-[75px] bg-[#00D4FF]/[0.03]"
-            style={{ bottom: 100, left: -30 }}
-          />
-          <View
-            className="absolute w-[100px] h-[100px] rounded-[50px] bg-white/[0.02]"
-            style={{ top: height * 0.3, right: 30 }}
-          />
-        </View>
+        <BackgroundPattern />
 
         <Animated.View
           className="flex-1"
@@ -185,156 +356,32 @@ export default function RegisterStep1() {
             transform: [{ translateY: slideAnim }],
           }}
         >
-          {/* Header */}
-          <View className={`flex-row items-center ${isSmallDevice ? 'px-4' : 'px-6'} ${Platform.OS === 'ios' ? 'pt-12' : 'pt-8'} pb-6`}>
-            <TouchableOpacity
-              onPress={handleBack}
-              className="w-10 h-10 rounded-full bg-white/10 justify-center items-center mr-4"
-              activeOpacity={0.7}
+          <Header onBack={handleBack} />
+
+          <View className="flex-1" style={mainContentStyle}>
+            <ScrollView 
+              ref={scrollViewRef}
+              className="flex-1"
+              contentContainerStyle={contentContainerStyle}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
-              <Text className="text-white text-lg">←</Text>
-            </TouchableOpacity>
-            <Text
-              className={`text-white ${isSmallDevice ? 'text-lg' : 'text-xl'} font-semibold`}
-            >
-              Criar Conta - Etapa 1
-            </Text>
-          </View>
+              {!isKeyboardVisible && <Avatar />}
 
-          {/* Avatar Section */}
-          <View className="items-center mb-8">
-            <View className="w-24 h-24 rounded-full bg-white/10 justify-center items-center border-2 border-white/15 mb-4">
-              <View className="w-12 h-12 rounded-full bg-[#00D4FF] justify-center items-center">
-                <Text className="text-white text-xl font-bold">👤</Text>
+              <View className={`${DEVICE_CONFIG.isSmallDevice ? 'px-4' : 'px-6'} flex-1`}>
+                {(Object.keys(FORM_FIELDS) as FormField[]).map((field) => (
+                  <FormField
+                    key={field}
+                    field={field}
+                    value={formData[field]}
+                    onChangeText={handleInputChange}
+                    onFocus={handleInputFocus}
+                  />
+                ))}
+
+                {!isKeyboardVisible && <NextButton onPress={handleNext} />}
               </View>
-              <TouchableOpacity className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#00D4FF] justify-center items-center">
-                <Text className="text-white text-sm">✎</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Form Fields */}
-          <View className={`${isSmallDevice ? 'px-4' : 'px-6'} flex-1`}>
-            {/* Nome */}
-            <View className="mb-5">
-              <Text
-                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
-                Nome
-              </Text>
-              <TextInput
-                className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
-                placeholder="Digite seu nome"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={formData.nome}
-                onChangeText={(text) => handleInputChange("nome", text)}
-                autoCapitalize="words"
-              />
-            </View>
-
-            {/* Sobrenome */}
-            <View className="mb-5">
-              <Text
-                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
-                Sobrenome
-              </Text>
-              <TextInput
-                className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
-                placeholder="Digite seu sobrenome"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={formData.sobrenome}
-                onChangeText={(text) => handleInputChange("sobrenome", text)}
-                autoCapitalize="words"
-              />
-            </View>
-
-            {/* Email */}
-            <View className="mb-5">
-              <Text
-                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
-                Email
-              </Text>
-              <TextInput
-                className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
-                placeholder="Digite seu email"
-                placeholderTextColor="rgba(255,255,255,0.4)"
-                value={formData.email}
-                onChangeText={(text) => handleInputChange("email", text)}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-            </View>
-
-            {/* Data de Nascimento */}
-            <View className="mb-5">
-              <Text
-                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
-                Data de Nascimento
-              </Text>
-              <View className="relative">
-                <TextInput
-                  className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'} pr-12`}
-                    placeholder="DD/MM/AAAA"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={formData.dataNascimento}
-                  onChangeText={(text) => handleInputChange("dataNascimento", text)}
-                  keyboardType="numeric"
-                  maxLength={10}
-                />
-                <View className="absolute right-4 top-4">
-                  <Text className="text-white/40 text-lg">📅</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* CPF */}
-            <View className="mb-8">
-              <Text
-                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
-                CPF
-              </Text>
-              <View className="relative">
-                <TextInput
-                  className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'} pr-12`}
-                    placeholder="000.000.000-00"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  value={formData.cpf}
-                  onChangeText={(text) => handleInputChange("cpf", text)}
-                  keyboardType="numeric"
-                  maxLength={14}
-                />
-                <View className="absolute right-4 top-4">
-                  <Text className="text-white/40 text-lg">📄</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Next Button */}
-            <View className={`mt-auto ${Platform.OS === 'ios' ? 'pb-8' : 'pb-6'}`}>
-              <TouchableOpacity
-                className={`bg-[#03acceff] rounded-2xl ${isSmallDevice ? 'py-4' : 'py-[18px]'} px-8 items-center`}
-                onPress={handleNext}
-                activeOpacity={0.8}
-                style={{
-                  shadowColor: "#00D4FF",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 8,
-                  minHeight: isSmallDevice ? 48 : 54,
-                }}
-              >
-                <Text
-                  className={`text-white ${isTinyDevice ? 'text-base' : 'text-lg'} font-semibold`}
-                    >
-                  Próximo
-                </Text>
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
         </Animated.View>
       </View>

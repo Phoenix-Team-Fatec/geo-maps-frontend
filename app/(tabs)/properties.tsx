@@ -104,13 +104,8 @@ export default function PropertiesScreen() {
   },[]);
 
   return (
-    <View className="flex-1 bg-[#1a1a2e] p-4">
+    <View className="flex-1 bg-[#1a1a2e]">
       <StatusBar style="light" />
-
-      {/* título da tela */}
-      <Text className="text-white text-xl font-semibold mt-8 mb-">
-        Propriedades
-      </Text>
 
       {/* mapa principal */}
       <View className="flex-1">
