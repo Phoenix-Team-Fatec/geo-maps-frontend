@@ -8,10 +8,13 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Platform,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
 const { width, height } = Dimensions.get("window");
+const isSmallDevice = width < 380;
+const isTinyDevice = width < 350;
 
 export default function RegisterStep2() {
   const router = useRouter();
@@ -187,7 +190,7 @@ export default function RegisterStep2() {
           }}
         >
           {/* Header */}
-          <View className="flex-row items-center px-6 pt-[50px] pb-8">
+          <View className={`flex-row items-center ${isSmallDevice ? 'px-4' : 'px-6'} ${Platform.OS === 'ios' ? 'pt-12' : 'pt-8'} pb-6`}>
             <TouchableOpacity
               onPress={handleBack}
               className="w-10 h-10 rounded-full bg-white/10 justify-center items-center mr-4"
@@ -195,33 +198,43 @@ export default function RegisterStep2() {
             >
               <Text className="text-white text-lg">←</Text>
             </TouchableOpacity>
-            <Text className="text-white text-xl font-semibold">
+            <Text
+              className={`text-white ${isSmallDevice ? 'text-lg' : 'text-xl'} font-semibold`}
+            >
               Criar Conta - Etapa 2
             </Text>
           </View>
 
           {/* Welcome Section */}
-          <View className="items-center mb-8">
+          <View className={`items-center ${isSmallDevice ? 'mb-6' : 'mb-8'}`}>
             <View className="w-24 h-24 rounded-full bg-[#00D4FF] justify-center items-center mb-4">
               <Text className="text-white text-3xl">🔒</Text>
             </View>
-            <Text className="text-white text-2xl font-bold mb-2">
+            <Text
+              className={`text-white ${isSmallDevice ? 'text-xl' : 'text-2xl'} font-bold mb-2`}
+                          >
               Quase lá, {params.nome}!
             </Text>
-            <Text className="text-white/70 text-base text-center px-8">
+            <Text
+              className={`text-white/70 ${isTinyDevice ? 'text-sm' : 'text-base'} text-center ${isSmallDevice ? 'px-4' : 'px-8'}`}
+            >
               Agora vamos criar uma senha segura para sua conta
             </Text>
           </View>
 
           {/* Form Fields */}
-          <View className="px-6 flex-1">
+          <View className={`${isSmallDevice ? 'px-4' : 'px-6'} flex-1`}>
             {/* Senha */}
             <View className="mb-5">
-              <Text className="text-white/70 text-sm mb-2 ml-1">Senha</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                Senha
+              </Text>
               <View className="relative">
                 <TextInput
-                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                  placeholder="Digite sua senha"
+                  className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'} pr-12`}
+                    placeholder="Digite sua senha"
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={formData.senha}
                   onChangeText={(text) => handleInputChange("senha", text)}
@@ -243,9 +256,13 @@ export default function RegisterStep2() {
               {formData.senha.length > 0 && (
                 <View className="mt-3">
                   <View className="flex-row justify-between items-center mb-2">
-                    <Text className="text-white/60 text-xs">Força da senha:</Text>
                     <Text
-                      className="text-xs font-medium"
+                      className={`text-white/60 ${isTinyDevice ? 'text-2xs' : 'text-xs'}`}
+                          >
+                      Força da senha:
+                    </Text>
+                    <Text
+                      className={`${isTinyDevice ? 'text-2xs' : 'text-xs'} font-medium`}
                       style={{ color: passwordStrength.color }}
                     >
                       {passwordStrength.text}
@@ -270,11 +287,15 @@ export default function RegisterStep2() {
 
             {/* Confirmar Senha */}
             <View className="mb-8">
-              <Text className="text-white/70 text-sm mb-2 ml-1">Confirmar Senha</Text>
+              <Text
+                className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+              >
+                Confirmar Senha
+              </Text>
               <View className="relative">
                 <TextInput
-                  className="bg-white/10 border border-white/15 rounded-2xl px-4 py-4 text-white text-base pr-12"
-                  placeholder="Confirme sua senha"
+                  className={`bg-white/10 border border-white/15 rounded-2xl px-4 ${isSmallDevice ? 'py-3' : 'py-4'} text-white ${isTinyDevice ? 'text-sm' : 'text-base'} pr-12`}
+                    placeholder="Confirme sua senha"
                   placeholderTextColor="rgba(255,255,255,0.4)"
                   value={formData.confirmarSenha}
                   onChangeText={(text) => handleInputChange("confirmarSenha", text)}
@@ -296,11 +317,11 @@ export default function RegisterStep2() {
               {formData.confirmarSenha.length > 0 && (
                 <View className="mt-2">
                   <Text
-                    className="text-xs ml-1"
+                    className={`${isTinyDevice ? 'text-2xs' : 'text-xs'} ml-1`}
                     style={{
                       color: formData.senha === formData.confirmarSenha
                         ? "#2ed573"
-                        : "#ff4757"
+                        : "#ff4757",
                     }}
                   >
                     {formData.senha === formData.confirmarSenha
@@ -312,45 +333,59 @@ export default function RegisterStep2() {
             </View>
 
             {/* Password Requirements */}
-            <View className="bg-white/5 rounded-2xl p-4 mb-8">
-              <Text className="text-white/80 text-sm font-medium mb-3">
+            <View className={`bg-white/5 rounded-2xl ${isSmallDevice ? 'p-3' : 'p-4'} mb-6`}>
+              <Text
+                className={`text-white/80 ${isTinyDevice ? 'text-xs' : 'text-sm'} font-medium mb-3`}
+                >
                 Sua senha deve conter:
               </Text>
-              <View className="space-y-2">
-                <Text className="text-white/60 text-xs">
+              <View className="space-y-1">
+                <Text
+                  className={`text-white/60 ${isTinyDevice ? 'text-2xs' : 'text-xs'}`}
+                  >
                   • Pelo menos 8 caracteres
                 </Text>
-                <Text className="text-white/60 text-xs">
+                <Text
+                  className={`text-white/60 ${isTinyDevice ? 'text-2xs' : 'text-xs'}`}
+                  >
                   • Uma letra maiúscula e uma minúscula
                 </Text>
-                <Text className="text-white/60 text-xs">
+                <Text
+                  className={`text-white/60 ${isTinyDevice ? 'text-2xs' : 'text-xs'}`}
+                  >
                   • Pelo menos um número
                 </Text>
               </View>
             </View>
 
             {/* Finish Button */}
-            <View className="mt-auto pb-15">
+            <View className={`mt-auto ${Platform.OS === 'ios' ? 'pb-8' : 'pb-6'}`}>
               <TouchableOpacity
-                className={`rounded-2xl py-[18px] px-8 items-center ${isLoading ? 'bg-white/20' : 'bg-[#03acceff]'
-                  }`}
+                className={`rounded-2xl ${isSmallDevice ? 'py-4' : 'py-[18px]'} px-8 items-center ${isLoading ? 'bg-white/20' : 'bg-[#03acceff]'}`}
                 onPress={handleFinish}
                 activeOpacity={0.8}
                 disabled={isLoading}
-                style={!isLoading ? {
-                  shadowColor: "#00D4FF",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 8,
-                } : {}}
+                style={{
+                  ...((!isLoading) ? {
+                    shadowColor: "#00D4FF",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 8,
+                  } : {}),
+                  minHeight: isSmallDevice ? 48 : 54,
+                }}
               >
-                <Text className="text-white text-lg font-semibold">
+                <Text
+                  className={`text-white ${isTinyDevice ? 'text-base' : 'text-lg'} font-semibold`}
+                    >
                   {isLoading ? "Criando conta..." : "Finalizar"}
                 </Text>
               </TouchableOpacity>
 
-              <Text className="text-xs text-white/50 text-center leading-4 px-5 mt-4">
+              <Text
+                className={`${isTinyDevice ? 'text-2xs' : 'text-xs'} text-white/50 text-center leading-4 ${isSmallDevice ? 'px-3' : 'px-5'} mt-4`}
+              >
                 Ao criar sua conta, você concorda com nossos Termos de Serviço e Política de Privacidade
               </Text>
             </View>
