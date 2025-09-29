@@ -15,6 +15,7 @@ export default function PropertiesScreen() {
   const [pendingCoords, setPendingCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [pendingAddress, setPendingAddress] = useState<string | undefined>(undefined);
   const [allowClipboardPrompt, setAllowClipboardPrompt] = useState(false);
+  const [showButton, setShowButton] = useState(false)
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
     // Do not open the add modal on simple tap. We'll allow the user to choose a point (selectedPoint)
@@ -84,6 +85,16 @@ export default function PropertiesScreen() {
     return unsub;
   }, []);
 
+
+  useEffect(() => {
+    
+    const timer = setTimeout(() => {
+      setShowButton(true) 
+    },5000)
+
+    return () => clearTimeout(timer)
+  },[])
+
   return (
     <View className='flex-1 bg-[#1a1a2e] p-4'>
       <StatusBar style="light" />
@@ -97,7 +108,9 @@ export default function PropertiesScreen() {
 
       <Text className='text-white/60 mt-4 text-center'>📍Selecione a localização no mapa para abrir o cadastro</Text>
 
-  <ButtonAddPlusRN onAdd={() => { setAllowClipboardPrompt(true); setShowAdd(true); }} onList={() => setShowList(true)} />
+  {showButton && (
+    <ButtonAddPlusRN onAdd={() => { setAllowClipboardPrompt(true); setShowAdd(true); }} onList={() => setShowList(true)} />
+    )}
 
       <AddPropertiesModal
         visible={showAdd}
