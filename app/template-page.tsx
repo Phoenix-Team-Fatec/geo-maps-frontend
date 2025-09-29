@@ -11,7 +11,6 @@ import {
   Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "@/auth/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -19,7 +18,6 @@ export default function BlankPageTemplate() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const { user } = useAuth();
 
   useEffect(() => {
     Animated.parallel([
@@ -35,10 +33,6 @@ export default function BlankPageTemplate() {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
-
-  useEffect(() => {
-    console.log(user)
-  })
 
   return (
     <View className="flex-1">

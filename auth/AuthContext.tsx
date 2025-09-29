@@ -48,29 +48,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, ms);
   };
 
+  const accessTokenRef = useRef<string | null>(null);
+
   const saveAccess = async (token: string | null) => {
+    accessTokenRef.current = token;
     setState((s) => ({ ...s, accessToken: token }));
-    if (token) {
-      await SecureStore.setItemAsync(ACCESS_KEY, token);
-    } else {
-      await SecureStore.deleteItemAsync(ACCESS_KEY);
-    }
+    if (token) await SecureStore.setItemAsync(ACCESS_KEY, token);
+    else await SecureStore.deleteItemAsync(ACCESS_KEY);
   };
 
   const loadPersisted = async () => {
     const token = await SecureStore.getItemAsync(ACCESS_KEY);
+    accessTokenRef.current = token;
     setState((s) => ({ ...s, accessToken: token }));
+    return token;
   };
 
   useEffect(() => {
-    loadPersisted().finally(async () => {
-      if (state.accessToken) {
-        try {
+    (async () => {
+      try {
+        const token = await loadPersisted();
+        if (token) {
           await getMeAndStore();
-        } catch { }
+        }
+      } finally {
+        setState((s) => ({ ...s, loading: false }));
       }
-      setState((s) => ({ ...s, loading: false }));
-    });
+    })();
+
     return () => {
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
@@ -108,10 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getMeAndStore = async () => {
-    if (!state.accessToken) throw new Error("Sem access token");
+    const token = accessTokenRef.current;
+    if (!token) throw new Error("Sem access token");
     const resp = await fetch("/auth/me", {
       method: "GET",
-      headers: { Authorization: `Bearer ${state.accessToken}` },
+      headers: { Authorization: `Bearer ${token}` },
       credentials: "include",
     });
     if (resp.ok) {

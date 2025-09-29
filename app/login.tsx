@@ -21,6 +21,9 @@ const { width, height } = Dimensions.get("window");
 const isSmallDevice = width < 380;
 const isTinyDevice = width < 350;
 
+const isSmallDevice = width < 380;
+const isTinyDevice = width < 350;
+
 export default function Login() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -90,10 +93,13 @@ export default function Login() {
     }
   };
 
+  const gotoForgot = () =>
+    router.push({ pathname: "/forgot-password", params: { email: formData.email } });
+
   return (
     <View className="flex-1 bg-[#0F172A]">
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-      
+
       {/* Background gradiente */}
       <LinearGradient
         colors={["#0F172A", "#1E293B"]}
@@ -140,14 +146,18 @@ export default function Login() {
           <View className="mb-5">
             <Text
               className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
+
               >
+
               E-mail
             </Text>
             <View className="flex-row items-center bg-white/10 border border-white/15 rounded-2xl px-4">
               <Mail size={18} color="rgba(255,255,255,0.6)" />
               <TextInput
                 className={`flex-1 ${isSmallDevice ? 'py-3' : 'py-4'} px-3 text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
+
                     placeholder="seu@email.com"
+
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.email}
                 onChangeText={(t) => handleInputChange("email", t)}
@@ -155,7 +165,7 @@ export default function Login() {
                 keyboardType="email-address"
               />
             </View>
-          </View>
+
 
           {/* Senha */}
           <View className="mb-6">
@@ -182,8 +192,9 @@ export default function Login() {
                   <Eye size={20} color="rgba(255,255,255,0.6)" />
                 )}
               </TouchableOpacity>
+
             </View>
-          </View>
+
 
           {/* Botão Entrar */}
           <View className={`mt-auto ${Platform.OS === 'ios' ? 'pb-8' : 'pb-6'}`}>
@@ -238,8 +249,16 @@ export default function Login() {
                   className={`text-cyan-400 ${isTinyDevice ? 'text-2xs' : 'text-xs'} font-medium`}
                       >
                   Criar conta
+
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.push("/create-profile")}>
+                  <Text
+                    className={`text-cyan-400 ${isTinyDevice ? 'text-2xs' : 'text-xs'} font-medium`}
+                  >
+                    Criar conta
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
