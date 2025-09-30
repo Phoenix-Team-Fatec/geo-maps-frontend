@@ -48,6 +48,14 @@ export default function ViewPropertiesModal({
   useEffect(() => {
     if (user?.cpf) fetchProperties();
   }, [user]);
+  useEffect(() => {
+    if (selectedProperty) {
+      const updated = userProperties.find(
+        (p) => p.id === selectedProperty.id
+      );
+      if (updated) setSelectedProperty(updated);
+    }
+  }, [userProperties]);
 
   return (
    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -81,13 +89,18 @@ export default function ViewPropertiesModal({
 
               {/* Botões na parte inferior */}
               <View style={styles.buttonsContainer}>
-                <TouchableOpacity
+               <TouchableOpacity
                   style={styles.detailsButton}
-                  onPress={() => setSelectedProperty(item)}
+                  onPress={async () => {
+                    await fetchProperties();
+                    const updated = userProperties.find(
+                      (p) => p.id === item.id
+                    );
+                    setSelectedProperty(updated || item);
+                  }}
                 >
                   <Text style={styles.detailsText}>Detalhes</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   style={styles.centerButton}
                   onPress={() => {
@@ -102,7 +115,9 @@ export default function ViewPropertiesModal({
 
                 <TouchableOpacity
                   style={[styles.centerButton, styles.plusCodeButton]}
-                  onPress={() => onGeneratePlusCode && onGeneratePlusCode(item)}
+                  onPress={() => {
+                    onGeneratePlusCode && onGeneratePlusCode(item);
+                    }}
                 >
                   <Text style={styles.plusCodeText}>Gerar Plus Code</Text>
                 </TouchableOpacity>
