@@ -96,7 +96,7 @@ export default function Login() {
   return (
     <View className="flex-1 bg-[#0F172A]">
       <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-      
+
       {/* Background gradiente */}
       <LinearGradient
         colors={["#0F172A", "#1E293B"]}
@@ -143,14 +143,14 @@ export default function Login() {
           <View className="mb-5">
             <Text
               className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
+            >
               E-mail
             </Text>
             <View className="flex-row items-center bg-white/10 border border-white/15 rounded-2xl px-4">
               <Mail size={18} color="rgba(255,255,255,0.6)" />
               <TextInput
                 className={`flex-1 ${isSmallDevice ? 'py-3' : 'py-4'} px-3 text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
-                    placeholder="seu@email.com"
+                placeholder="seu@email.com"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.email}
                 onChangeText={(t) => handleInputChange("email", t)}
@@ -158,37 +158,20 @@ export default function Login() {
                 keyboardType="email-address"
               />
             </View>
-            <Text className="text-white text-2xl font-bold mb-2">
-              Bem-vindo de volta!
-            </Text>
-            <View className="flex-row justify-center mt-6">
-              <TouchableOpacity onPress={gotoForgot} activeOpacity={0.8}>
-                <Text className="text-cyan-400 text-sm font-medium">Esqueci minha senha</Text>
-              </TouchableOpacity>
-            </View>
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-white/60 text-xs mr-1">
-                Ainda não tem uma conta?
-              </Text>
-              <TouchableOpacity onPress={() => router.push("/create-profile")}>
-                <Text className="text-cyan-400 text-xs font-medium">
-                  Criar conta
-                </Text>
-              </TouchableOpacity>
           </View>
 
           {/* Senha */}
           <View className="mb-6">
             <Text
               className={`text-white/70 ${isTinyDevice ? 'text-xs' : 'text-sm'} mb-2 ml-1`}
-              >
+            >
               Senha
             </Text>
             <View className="flex-row items-center bg-white/10 border border-white/15 rounded-2xl px-4">
               <Lock size={18} color="rgba(255,255,255,0.6)" />
               <TextInput
                 className={`flex-1 ${isSmallDevice ? 'py-3' : 'py-4'} px-3 text-white ${isTinyDevice ? 'text-sm' : 'text-base'}`}
-                    placeholder="Digite sua senha"
+                placeholder="Digite sua senha"
                 placeholderTextColor="rgba(255,255,255,0.4)"
                 value={formData.senha}
                 onChangeText={(t) => handleInputChange("senha", t)}
@@ -201,6 +184,11 @@ export default function Login() {
                 ) : (
                   <Eye size={20} color="rgba(255,255,255,0.6)" />
                 )}
+              </TouchableOpacity>
+            </View>
+            <View className="flex-row justify-center mt-6">
+              <TouchableOpacity onPress={gotoForgot} activeOpacity={0.8}>
+                <Text className="text-cyan-400 text-sm font-medium">Esqueci minha senha</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -242,7 +230,7 @@ export default function Login() {
 
             <Text
               className={`${isTinyDevice ? 'text-2xs' : 'text-xs'} text-white/50 text-center leading-4 ${isSmallDevice ? 'px-3' : 'px-5'} mt-4`}
-              >
+            >
               Ao entrar, você concorda com nossos Termos de Serviço e Política de
               Privacidade
             </Text>
@@ -250,13 +238,13 @@ export default function Login() {
             <View className="flex-row justify-center mt-6">
               <Text
                 className={`text-white/60 ${isTinyDevice ? 'text-2xs' : 'text-xs'} mr-1`}
-                  >
+              >
                 Ainda não tem uma conta?
               </Text>
               <TouchableOpacity onPress={() => router.push("/create-profile")}>
                 <Text
                   className={`text-cyan-400 ${isTinyDevice ? 'text-2xs' : 'text-xs'} font-medium`}
-                      >
+                >
                   Criar conta
                 </Text>
               </TouchableOpacity>

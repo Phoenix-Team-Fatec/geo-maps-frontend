@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as SecureStore from "expo-secure-store";
+import { useRouter } from "expo-router";
 
 type User = {
   id: string;
@@ -30,13 +31,17 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType>({} as any);
 
 const ACCESS_KEY = "access_token";
+const REFRESH_KEY = "refresh_token";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const router = useRouter();
   const [state, setState] = useState<AuthState>({
     accessToken: null,
     user: null,
     loading: true,
   });
+
+  const { loading, user } = state;
 
   const refreshTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -49,37 +54,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const accessTokenRef = useRef<string | null>(null);
+  const refreshTokenRef = useRef<string | null>(null);
 
-  const saveAccess = async (token: string | null) => {
-    accessTokenRef.current = token;
-    setState((s) => ({ ...s, accessToken: token }));
-    if (token) await SecureStore.setItemAsync(ACCESS_KEY, token);
+  const saveTokens = async (access: string | null, refresh: string | null) => {
+    accessTokenRef.current = access;
+    refreshTokenRef.current = refresh;
+    setState(s => ({ ...s, accessToken: access }));
+
+    if (access) await SecureStore.setItemAsync(ACCESS_KEY, access);
     else await SecureStore.deleteItemAsync(ACCESS_KEY);
+
+    if (refresh) await SecureStore.setItemAsync(REFRESH_KEY, refresh);
+    else await SecureStore.deleteItemAsync(REFRESH_KEY);
   };
 
   const loadPersisted = async () => {
-    const token = await SecureStore.getItemAsync(ACCESS_KEY);
-    accessTokenRef.current = token;
-    setState((s) => ({ ...s, accessToken: token }));
-    return token;
+    const access = await SecureStore.getItemAsync(ACCESS_KEY);
+    const refresh = await SecureStore.getItemAsync(REFRESH_KEY);
+    accessTokenRef.current = access;
+    refreshTokenRef.current = refresh;
+    setState(s => ({ ...s, accessToken: access }));
+    return { access, refresh };
   };
+
+
 
   useEffect(() => {
     (async () => {
       try {
-        const token = await loadPersisted();
-        if (token) {
+        const { access, refresh } = await loadPersisted();
+        if (!access && refresh) {
+          const newAccess = await refreshAccessToken();
+          if (newAccess) await getMeAndStore();
+        }
+        else if (access) {
           await getMeAndStore();
         }
+      } catch {
+        await saveTokens(null, null);
       } finally {
-        setState((s) => ({ ...s, loading: false }));
+        setState(s => ({ ...s, loading: false }));
       }
     })();
 
     return () => {
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const parseError = async (resp: Response) => {
@@ -95,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const resp = await fetch("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",           // mantém cookie httpOnly do refresh
+      credentials: "include",
       body: JSON.stringify({ email, password }),
     });
 
@@ -106,8 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error(detail);
     }
 
-    const data = await resp.json();     // { access_token, expires_in, token_type }
-    await saveAccess(data.access_token);
+    const data = await resp.json();
+    await saveTokens(data.access_token, data.refresh_token);
     scheduleRefresh(data.expires_in || 15 * 60);
     await getMeAndStore();
   };
@@ -142,17 +162,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshAccessToken = async (): Promise<string | null> => {
+    const storedRefresh = await SecureStore.getItemAsync(REFRESH_KEY);
+    if (!storedRefresh) {
+      await saveTokens(null, null);
+      return null;
+    }
     const resp = await fetch("/auth/refresh", {
       method: "POST",
       credentials: "include",
     });
     if (!resp.ok) {
-      await saveAccess(null);
+      await saveTokens(null, null);
       setState((s) => ({ ...s, user: null }));
       return null;
     }
     const data = await resp.json(); // { access_token, expires_in }
-    await saveAccess(data.access_token);
+    await saveTokens(data.access_token, data.refresh_token);
     scheduleRefresh(data.expires_in || 15 * 60);
     return data.access_token as string;
   };
@@ -180,9 +205,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await fetch("/auth/logout", { method: "POST", credentials: "include" });
     } catch { }
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
-    await saveAccess(null);
+    await saveTokens(null, null);
     setState({ accessToken: null, user: null, loading: false });
   };
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/(tabs)/map");
+    }
+  }, [loading, user]);
 
   return (
     <AuthContext.Provider
