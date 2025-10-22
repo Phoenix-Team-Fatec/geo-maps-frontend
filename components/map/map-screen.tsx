@@ -15,6 +15,7 @@ import SearchScreen from '@/components/search/search-bar-maps';
 import { SearchLocation } from '@/types/location';
 import { loadFullProjectArea, ProjectArea } from '@/utils/geojson';
 import { GoogleMapsAPI } from '@/services/google-maps-api';
+import ConditionModal from '../modals/condition_modal';
 
 interface LocationCoords {
   latitude: number;
@@ -40,8 +41,12 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
   const [showSearchScreen, setShowSearchScreen] = useState(false);
   const [destinationLocation, setDestinationLocation] = useState<SearchLocation | null>(null);
 
+  const [showConditionModal, setShowConditionModal] = useState(false);
+
   const mapRef = useRef<MapView>(null);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
+
+
 
   useEffect(() => {
     initializeApp();
@@ -336,6 +341,28 @@ const handleMapPress = (e: any) => {
         )}
       </MapView>
 
+      {/* Botão flutuante para registrar condições da via ___________________________________________________________________________________________________________________________*/}
+      <View className="absolute bottom-5 right-5 z-20">
+          <TouchableOpacity
+            onPress={() => setShowConditionModal(true)}
+              style={{
+                backgroundColor: '#1a1a2e',
+                width: 50,
+                height: 50,
+                borderRadius: 32,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 10,
+          }}
+        >
+          <Ionicons name="alert" size={30} color="#ffffffff" />
+        </TouchableOpacity>
+      </View>
+
       {/* Navigation Controls */}
       {destination && !isNavigating && (
         <View className="absolute bottom-8 left-4 right-4 z-10">
@@ -369,6 +396,12 @@ const handleMapPress = (e: any) => {
         onClose={() => setShowSearchScreen(false)}
         currentLocation={location || undefined}
       />
+      {/* Modal */}
+      <ConditionModal
+        showConditionModal={showConditionModal}
+        setShowConditionModal={setShowConditionModal}
+      />
     </View>
+
   );
 }
