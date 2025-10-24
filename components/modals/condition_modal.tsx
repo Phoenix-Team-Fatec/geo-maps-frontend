@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/auth/AuthContext';
 
-export default function ConditionModal({ showConditionModal, setShowConditionModal }) {
+export default function ConditionModal({ showConditionModal, setShowConditionModal, local }) {
   const [selectedCondition, setSelectedCondition] = useState<string | null>(null);
   const [selectedSeverity, setSelectedSeverity] = useState<string | null>(null);
-
+  const { user } = useAuth();                      // pega usuário do contexto
+  
   const fadeAnim = useRef(new Animated.Value(0)).current; // Fade principal (entrada/saída do modal)
   const contentFade = useRef(new Animated.Value(1)).current; // Fade interno (transição de etapas)
 
@@ -41,12 +43,8 @@ export default function ConditionModal({ showConditionModal, setShowConditionMod
     });
   };
 
-  const handleRegister = () => {
-    Alert.alert('Registro', `Condição: ${selectedCondition}\nGravidade: ${selectedSeverity}`);
-    setSelectedCondition(null);
-    setSelectedSeverity(null);
-    setShowConditionModal(false);
-  };
+
+
 
   const conditions = [
     { label: 'Trânsito', icon: 'car' },
@@ -62,6 +60,48 @@ export default function ConditionModal({ showConditionModal, setShowConditionMod
   ];
 
   if (!showConditionModal) return null;
+
+  const handleRegister = async () => {
+    try {
+      const data = {
+        "ocorrencia":{
+          "tipo": selectedCondition.toLowerCase(),
+          "gravidade": selectedSeverity.toLowerCase(),
+          "coordinate": {
+            "longitude": local.longitude,
+            "latitude": local.latitude
+          }
+        },
+          "area": [],
+          "data_registro": "",
+          "user_coordinate": {
+            "longitude": local.longitude,
+            "latitude": local.latitude
+          },  
+      }
+
+      console.log(data)
+
+      const resp = await fetch('/ocorrencia/adicionar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(err || 'Falha ao registrar condição');
+      } 
+
+       Alert.alert('Sucesso', 'Ocorrência registrada!');
+
+
+    } catch (error) {
+      Alert.alert('Erro', 'Falha ao registrar condição. Tente novamente.');
+    }
+
+
+  };
 
   return (
     <Animated.View

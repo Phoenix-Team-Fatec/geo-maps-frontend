@@ -400,6 +400,7 @@ const handleMapPress = (e: any) => {
       <ConditionModal
         showConditionModal={showConditionModal}
         setShowConditionModal={setShowConditionModal}
+        local={location}
       />
     </View>
 
