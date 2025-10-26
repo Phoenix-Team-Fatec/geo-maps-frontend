@@ -11,6 +11,7 @@ import {
   PanResponder,
   Dimensions,
 } from 'react-native';
+import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 import { SearchResult, LocationCoords, SearchLocation } from '@/types/location';
 import { GoogleMapsAPI } from '@/services/google-maps-api';
@@ -94,7 +95,7 @@ export default function SearchScreen({
       try {
         const [address] = await Location.reverseGeocodeAsync(currentLocation);
         const locationText = `${address.street || ''} ${address.streetNumber || ''}`.trim() ||
-                           `${address.district || address.city || 'Localização atual'}`;
+          `${address.district || address.city || 'Localização atual'}`;
         setCurrentLocationText(locationText);
       } catch {
         setCurrentLocationText('Localização atual');
@@ -110,8 +111,30 @@ export default function SearchScreen({
 
     setIsLoading(true);
     try {
-      const results = await GoogleMapsAPI.searchPlaces(query);
-      setSearchResults(results);
+      const googleResults = await GoogleMapsAPI.searchPlaces(query);
+
+      const plusCodeResponse = await axios.get("/plus-code/get");
+      const plusCodes = plusCodeResponse.data;
+
+      const plusCodeResults: SearchResult[] = plusCodes
+        .filter((pc: any) =>
+          // Filtra por query (opcional - busca no surname ou pluscode_cod)
+          pc.surname.toLowerCase().includes(query.toLowerCase()) ||
+          pc.pluscode_cod.toLowerCase().includes(query.toLowerCase())
+        )
+        .map((pc: any) => ({
+          place_id: `pluscode_${pc.id}`, // ID único com prefixo
+          description: `${pc.surname} (Plus Code: ${pc.pluscode_cod})`,
+          structured_formatting: {
+            main_text: pc.surname,
+            secondary_text: `Plus Code: ${pc.pluscode_cod}`,
+          },
+          // Adiciona campos extras para identificar depois
+          isPlusCode: true,
+          coordinates: pc.cordinates,
+        }));
+
+      setSearchResults([...plusCodeResults, ...googleResults]);
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível buscar locais');
       setSearchResults([]);
@@ -128,9 +151,24 @@ export default function SearchScreen({
   const handleLocationSelect = async (result: SearchResult) => {
     setIsLoading(true);
     try {
-      const details = await GoogleMapsAPI.getPlaceDetails(result.place_id);
-      if (details) {
-        const location: SearchLocation = {
+      let location: SearchLocation;
+
+      // Verifica se é um Plus Code
+      if (result.isPlusCode && result.coordinates) {
+        location = {
+          placeId: result.place_id,
+          description: result.description,
+          coordinates: result.coordinates,
+        };
+      } else {
+        // Se for do Google Maps, busca os detalhes
+        const details = await GoogleMapsAPI.getPlaceDetails(result.place_id);
+        if (!details) {
+          Alert.alert('Erro', 'Não foi possível obter coordenadas do local');
+          return;
+        }
+
+        location = {
           placeId: result.place_id,
           description: result.description,
           coordinates: {
@@ -138,14 +176,13 @@ export default function SearchScreen({
             longitude: details.lng,
           },
         };
-
-        setDestinationQuery(result.structured_formatting.main_text);
-        onDestinationSelect(location);
-        setSearchResults([]);
-        closeBottomSheet();
-      } else {
-        Alert.alert('Erro', 'Não foi possível obter coordenadas do local');
       }
+
+      setDestinationQuery(result.structured_formatting.main_text);
+      onDestinationSelect(location);
+      setSearchResults([]);
+      closeBottomSheet();
+
     } catch (error) {
       console.error('Location select error:', error);
       Alert.alert('Erro', 'Não foi possível obter detalhes do local');
