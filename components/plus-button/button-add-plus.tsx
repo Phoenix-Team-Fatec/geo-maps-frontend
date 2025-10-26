@@ -89,15 +89,15 @@ export default function ButtonAddPlus({ onAdd, onList }: Props) {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        right: 20,
-        bottom: 50,
+        right: 10, 
+        bottom: 82,
         alignItems: 'center',
     },
     fab: {
-        width: 56,
-        height: 56,
+        width: 50,
+        height: 50,
         borderRadius: 28,
-        backgroundColor: '#03acce',
+        backgroundColor: '#00D4FF', // Changed to match app's accent color
         alignItems: 'center',
         justifyContent: 'center',
         shadowColor: '#000',

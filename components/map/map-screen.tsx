@@ -17,6 +17,8 @@ import { SearchLocation } from '@/types/location';
 import { loadFullProjectArea, ProjectArea } from '@/utils/geojson';
 import { traceRoute } from '@/services/routes-client';
 import ConditionModal from '../modals/condition_modal';
+import ProximityAlert from './ProximityAlert';
+import { useProximityAlerts } from '@/hooks/useProximityAlerts';
 
 interface LocationCoords {
   latitude: number;
@@ -85,6 +87,13 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
 
   const mapRef = useRef<MapView>(null);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
+
+  // Proximity alerts for occurrences
+  const { occurrences, activeAlert, dismissAlert } = useProximityAlerts({
+    currentLocation: location,
+    alertRadius: 500, // 500 meters
+    enabled: !pickMode, // Only show alerts when not in pick mode
+  });
 
   useEffect(() => {
     initializeApp();
@@ -562,6 +571,15 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
     <View className="flex-1 bg-white">
       <StatusBar style={isNavigating ? "light" : "dark"} />
 
+      {/* Proximity Alert - Waze style */}
+      {activeAlert && !isNavigating && (
+        <ProximityAlert
+          occurrence={activeAlert.occurrence}
+          distance={activeAlert.distance}
+          onDismiss={dismissAlert}
+        />
+      )}
+
       {/* UI Normal - Planejamento de Rota */}
       {!isNavigating && (
         <>
@@ -884,6 +902,63 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
             strokeColor="#00D4FF"
           />
         )}
+
+        {/* Occurrence Markers - Show only when not navigating */}
+        {!isNavigating && occurrences.map((occ, idx) => {
+          const occId = occ._id || `${occ.coordinate.latitude}-${occ.coordinate.longitude}-${idx}`;
+
+          // Get icon and color based on occurrence type and severity
+          const getIconName = (type: string): keyof typeof Ionicons.glyphMap => {
+            const typeMap: { [key: string]: keyof typeof Ionicons.glyphMap } = {
+              'trânsito': 'car',
+              'acidente': 'warning',
+              'veículo parado': 'alert-circle',
+              'veículo no acostamento': 'alert-circle',
+              'polícia': 'shield',
+              'polícia rodoviária': 'shield',
+            };
+            return typeMap[type.toLowerCase()] || 'information-circle';
+          };
+
+          const getColor = (severity: string): string => {
+            const colorMap: { [key: string]: string } = {
+              'leve': '#00D4FF',
+              'moderada': '#ffb703',
+              'intensa': '#ff006e',
+            };
+            return colorMap[severity.toLowerCase()] || '#00D4FF';
+          };
+
+          return (
+            <Marker
+              key={occId}
+              coordinate={{
+                latitude: occ.coordinate.latitude,
+                longitude: occ.coordinate.longitude,
+              }}
+              title={occ.tipo}
+              description={`Gravidade: ${occ.gravidade}`}
+            >
+              <View style={{
+                backgroundColor: getColor(occ.gravidade),
+                borderRadius: 25,
+                width: 50,
+                height: 50,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 3,
+                borderColor: '#FFF',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 5,
+              }}>
+                <Ionicons name={getIconName(occ.tipo)} size={28} color="#FFF" />
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
       {/* Travel Mode Modal */}
