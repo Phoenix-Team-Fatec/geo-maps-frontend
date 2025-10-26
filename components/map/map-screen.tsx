@@ -16,6 +16,7 @@ import SearchScreen from '@/components/search/search-bar-maps';
 import { SearchLocation } from '@/types/location';
 import { loadFullProjectArea, ProjectArea } from '@/utils/geojson';
 import { traceRoute } from '@/services/routes-client';
+import ConditionModal from '../modals/condition_modal';
 
 interface LocationCoords {
   latitude: number;
@@ -52,6 +53,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
   const [projectArea, setProjectArea] = useState<ProjectArea | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showConditionModal, setShowConditionModal] = useState(false);
   
   // Origem e Destino
   const [origin, setOrigin] = useState<LocationCoords | null>(null);
@@ -938,6 +940,27 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
         onClose={() => setShowSearchScreen(false)}
         currentLocation={location || undefined}
       />
+
+            {/* Floating Button to Report Road Condition */}
+      {!isNavigating && !showSearchScreen && (
+        <View className="absolute bottom-8 right-4 z-10">
+          <TouchableOpacity
+            className="bg-[#00D4FF] rounded-full w-14 h-14 items-center justify-center shadow-xl elevation-8"
+            onPress={() => setShowConditionModal(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="warning" size={28} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Condition Modal */}
+      <ConditionModal
+        showConditionModal={showConditionModal}
+        setShowConditionModal={setShowConditionModal}
+        local={location}
+      />
+
     </View>
   );
 }
