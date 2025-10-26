@@ -67,64 +67,69 @@ export default function ViewPropertiesModal({
         data={userProperties}
         keyExtractor={(item, index) => item.id || index.toString()}
         renderItem={({ item }) => {
-          // Pega um ponto do anel externo (serve p/ Polygon e MultiPolygon)
-          const coords =
-            item.geometry?.type === 'MultiPolygon'
-              ? item.geometry?.coordinates?.[0]?.[0]?.[0]
-              : item.geometry?.coordinates?.[0]?.[0];
+  const coords =
+    item.geometry?.type === 'MultiPolygon'
+      ? item.geometry?.coordinates?.[0]?.[0]?.[0]
+      : item.geometry?.coordinates?.[0]?.[0];
 
-          const [lng, lat] = Array.isArray(coords) ? coords : [0, 0];
+  const [lng, lat] = Array.isArray(coords) ? coords : [0, 0];
 
-          return (
-            <View style={styles.itemCard}>
-              {/* Textos no topo */}
-              <View style={styles.textContainer}>
-                <Text style={styles.itemTitle}>
-                  {item.properties.municipio} - {item.properties.cod_estado}
-                </Text>
-                <Text style={styles.itemSubtitle}>
-                  Código: {item.properties.cod_imovel?.slice(-12) || 'N/A'}
-                </Text>
-              </View>
+  // Verifica se há Plus Code associado
+  const hasPlusCode = !!item.pluscode && Object.keys(item.pluscode).length > 0;
 
-              {/* Botões na parte inferior */}
-              <View style={styles.buttonsContainer}>
-               <TouchableOpacity
-                  style={styles.detailsButton}
-                  onPress={async () => {
-                    await fetchProperties();
-                    const updated = userProperties.find(
-                      (p) => p.id === item.id
-                    );
-                    setSelectedProperty(updated || item);
-                  }}
-                >
-                  <Text style={styles.detailsText}>Detalhes</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.centerButton}
-                  onPress={() => {
-                    if (onCenter && Number.isFinite(lat) && Number.isFinite(lng)) {
-                      onCenter({ latitude: lat, longitude: lng });
-                      onClose();
-                    }
-                  }}
-                >
-                  <Text style={styles.centerText}>Ver no mapa</Text>
-                </TouchableOpacity>
+  // Define cor de fundo conforme o estado
+  const backgroundColor = hasPlusCode ? '#234324ff' : '#911232ff'; // verde / laranja
 
-                <TouchableOpacity
-                  style={[styles.centerButton, styles.plusCodeButton]}
-                  onPress={() => {
-                    onGeneratePlusCode && onGeneratePlusCode(item);
-                    }}
-                >
-                  <Text style={styles.plusCodeText}>Gerar Plus Code</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        }}
+  return (
+    <View style={[styles.itemCard, { backgroundColor }]}>
+      {/* Textos no topo */}
+      <View style={styles.textContainer}>
+        <Text style={styles.itemTitle}>
+          {item.properties.municipio} - {item.properties.cod_estado}
+        </Text>
+        <Text style={styles.itemSubtitle}>
+          Código: {item.properties.cod_imovel?.slice(-12) || 'N/A'}
+        </Text>
+      </View>
+
+      {/* Botões na parte inferior */}
+      <View style={styles.buttonsContainer}>
+        <TouchableOpacity
+          style={styles.detailsButton}
+          onPress={async () => {
+            await fetchProperties();
+            const updated = userProperties.find((p) => p.id === item.id);
+            setSelectedProperty(updated || item);
+          }}
+        >
+          <Text style={styles.detailsText}>Detalhes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.centerButton}
+          onPress={() => {
+            if (onCenter && Number.isFinite(lat) && Number.isFinite(lng)) {
+              onCenter({ latitude: lat, longitude: lng });
+              onClose();
+            }
+          }}
+        >
+          <Text style={styles.centerText}>Ver no mapa</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.centerButton, styles.plusCodeButton]}
+          onPress={() => {
+            onGeneratePlusCode && onGeneratePlusCode(item);
+          }}
+        >
+          <Text style={styles.plusCodeText}>Gerar Plus Code</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}}
+
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
