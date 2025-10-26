@@ -104,18 +104,6 @@ export default function BlankPageTemplate() {
                 <Text className="text-white/60 text-xs">Mapa</Text>
               </TouchableOpacity>
 
-              {/* Routes */}
-              <TouchableOpacity
-                className="items-center justify-center flex-1 py-2"
-                activeOpacity={0.7}
-                onPress={() => router.push("/routes")}
-              >
-                <View className="w-6 h-6 mb-1">
-                  <Text className="text-white/60 text-xl text-center">🛣️</Text>
-                </View>
-                <Text className="text-white/60 text-xs">Rotas</Text>
-              </TouchableOpacity>
-
               {/* Profile */}
               <TouchableOpacity
                 className="items-center justify-center flex-1 py-2"

@@ -1,6 +1,3 @@
-
-// app/_layout.tsx
-
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import SplashScreen from '@/components/initial-screen/splash-screen';
@@ -16,16 +13,24 @@ export default function RootLayout() {
   const { fontsLoaded, fontError } = useAppFonts();
 
   useEffect(() => {
-    if (fontsLoaded) setGlobalFont('Poppins-Regular');
+    // Set global font when fonts are loaded
+    if (fontsLoaded) {
+      setGlobalFont('Poppins-Regular');
+    }
   }, [fontsLoaded, fontError]);
 
   useEffect(() => {
+    // Hide splash screen after 2.5 seconds and fonts are loaded
     if (fontsLoaded || fontError) {
-      const timer = setTimeout(() => setIsShowingSplash(false), 2500);
+      const timer = setTimeout(() => {
+        setIsShowingSplash(false);
+      }, 2500);
+
       return () => clearTimeout(timer);
     }
   }, [fontsLoaded, fontError]);
 
+  // Show splash screen while fonts are loading
   if ((!fontsLoaded && !fontError) || isShowingSplash) {
     return <SplashScreen />;
   }
@@ -40,13 +45,10 @@ export default function RootLayout() {
 function AuthGate() {
   const { loading, user } = useAuth();
 
-  // 1) Enquanto faz o bootstrap do auth, mostra splash
   if (loading) {
     return <SplashScreen />;
   }
 
-  // 2) Se o user for null, rotas públicas (login, cadastro…)
-  //    Senão, direciona pro grupo de tabs (que contém o mapa)
   return (
     <Stack screenOptions={{ headerShown: false }}>
       {user ? (
@@ -58,7 +60,7 @@ function AuthGate() {
           <Stack.Screen name="create-account" />
           <Stack.Screen name="create-profile" />
           <Stack.Screen name="login" />
-          <Stack.Screen name="forget-password" />
+          <Stack.Screen name="forgot-password" />
           <Stack.Screen name="reset-password" />
           <Stack.Screen name="verify-code" />
           <Stack.Screen name="template-page" />
