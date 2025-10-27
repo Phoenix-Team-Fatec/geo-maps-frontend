@@ -8,6 +8,8 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '@/auth/AuthContext';
+import AddPropertiesModal from '@/components/properties/add-pluscode';
+import UpdatePlusCodeModal from '@/components/properties/update-pluscode';
 
 function formatarCPF(cpf: string) {
   cpf = cpf.replace(/[^\d]/g, '');
@@ -79,6 +81,7 @@ export default function ViewPropertiesModal({
 
   // Define cor de fundo conforme o estado
   const backgroundColor = hasPlusCode ? '#234324ff' : '#911232ff'; // verde / laranja
+  
 
   return (
     <View style={[styles.itemCard, { backgroundColor }]}>
@@ -119,11 +122,11 @@ export default function ViewPropertiesModal({
 
         <TouchableOpacity
           style={[styles.centerButton, styles.plusCodeButton]}
-          onPress={() => {
-            onGeneratePlusCode && onGeneratePlusCode(item);
-          }}
+          onPress={() => onGeneratePlusCode && onGeneratePlusCode(item)}
         >
-          <Text style={styles.plusCodeText}>Gerar Plus Code</Text>
+          <Text style={styles.plusCodeText}>
+            {hasPlusCode ? 'Atualizar Plus Code' : 'Gerar Plus Code'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -202,6 +205,80 @@ export default function ViewPropertiesModal({
     </Modal>
   )}
 </Modal>
+  );
+}
+
+type FlowProps = {
+  visible: boolean;
+  onClose: () => void;
+  onCenter?: (coords: { latitude: number; longitude: number }) => void;
+};
+
+export function ViewPropertiesFlow({ visible, onClose, onCenter }: FlowProps) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [currentCodImovel, setCurrentCodImovel] = useState<string | null>(null);
+  const [currentItem, setCurrentItem] = useState<any | null>(null);
+
+  function handlePlusCodeAction(item: any) {
+    setCurrentCodImovel(item?.properties?.cod_imovel ?? null);
+    setCurrentItem(item);
+    const hasPlusCode = !!item?.pluscode && Object.keys(item.pluscode).length > 0;
+    if (hasPlusCode) setUpdateOpen(true);
+    else setAddOpen(true);
+  }
+
+  function handleSelectOnMap() {
+    // (Opcional) Ative o modo de seleção no mapa aqui.
+  }
+
+  function handleCenterFromProperty(): { lat: number; lng: number } | void {
+    if (!currentItem?.geometry) return;
+    const c =
+      currentItem.geometry?.type === 'MultiPolygon'
+        ? currentItem.geometry?.coordinates?.[0]?.[0]?.[0]
+        : currentItem.geometry?.coordinates?.[0]?.[0];
+    if (Array.isArray(c)) {
+      const [lng, lat] = c;
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+  }
+
+  return (
+    <>
+      <ViewPropertiesModal
+        visible={visible}
+        onClose={onClose}
+        onCenter={onCenter}
+        onGeneratePlusCode={handlePlusCodeAction}
+      />
+
+      {currentCodImovel && (
+        <>
+          <AddPropertiesModal
+            visible={addOpen}
+            onClose={() => setAddOpen(false)}
+            codImovel={currentCodImovel}
+            onCreated={() => {
+              // A lista se autoatualiza ao abrir; se quiser, reabra/forçe refetch aqui.
+            }}
+            onSelectOnMap={handleSelectOnMap}
+            onCenterProperty={handleCenterFromProperty}
+          />
+
+          <UpdatePlusCodeModal
+            visible={updateOpen}
+            onClose={() => setUpdateOpen(false)}
+            codImovel={currentCodImovel}
+            onUpdated={() => {
+              // Idem acima.
+            }}
+            onSelectOnMap={handleSelectOnMap}
+            onCenterProperty={handleCenterFromProperty}
+          />
+        </>
+      )}
+    </>
   );
 }
 
