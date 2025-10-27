@@ -19,6 +19,8 @@ import { traceRoute } from '@/services/routes-client';
 import ConditionModal from '../modals/condition_modal';
 import ProximityAlert from './ProximityAlert';
 import { useProximityAlerts } from '@/hooks/useProximityAlerts';
+import WeatherAlert from '@/components/weather/WeatherAlert';
+import { useWeatherAlert } from '@/hooks/useWeatherAlert';
 
 interface LocationCoords {
   latitude: number;
@@ -93,6 +95,19 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
     currentLocation: location,
     alertRadius: 500, // 500 meters
     enabled: !pickMode, // Only show alerts when not in pick mode
+  });
+
+  // Weather alerts for dangerous conditions
+  const {
+    weather: alertWeather,
+    severity: weatherSeverity,
+    message: weatherMessage,
+    showAlert: showWeatherAlert,
+    checkWeatherAlert,
+    dismissAlert: dismissWeatherAlert,
+  } = useWeatherAlert({
+    enabled: !pickMode,
+    throttleMinutes: 5, // Show alert again after 5 minutes (change as needed)
   });
 
   useEffect(() => {
@@ -313,6 +328,9 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
 
     setIsLoading(true);
     try {
+      // Check weather at destination before generating route
+      await checkWeatherAlert(destination.latitude, destination.longitude);
+
       const { coords, rawRoute } = await traceRoute(origin, destination, travelMode);
       setRouteCoordinates(coords);
 
@@ -577,6 +595,17 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
           occurrence={activeAlert.occurrence}
           distance={activeAlert.distance}
           onDismiss={dismissAlert}
+        />
+      )}
+
+      {/* Weather Alert - Shows weather forecast at destination */}
+      {showWeatherAlert && alertWeather && !isNavigating && (
+        <WeatherAlert
+          weather={alertWeather}
+          severity={weatherSeverity}
+          message={weatherMessage}
+          locationName={destinationLocation?.description}
+          onDismiss={dismissWeatherAlert}
         />
       )}
 
