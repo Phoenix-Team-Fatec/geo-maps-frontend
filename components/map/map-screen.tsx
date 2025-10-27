@@ -95,16 +95,6 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
     enabled: !pickMode, // Only show alerts when not in pick mode
   });
 
-  const getPlusCodePoint = (feature: any) => {
-  const pc = feature?.pluscode;
-  if (!pc) return null;
-  const c = pc.cordinates ?? pc.coordinates; // backend pode mandar 'cordinates' ou 'coordinates'
-  const lat = c?.latitude ?? c?.lat ?? c?.Latitude;
-  const lng = c?.longitude ?? c?.lng ?? c?.Longitude;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return { latitude: Number(lat), longitude: Number(lng) };
-};
-
   useEffect(() => {
     initializeApp();
     return () => {
@@ -859,45 +849,6 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
             strokeWidth={2}
           />
         )}
-
-        {!isNavigating && userProperties.map((feature, idx) => {
-        const point = getPlusCodePoint(feature);
-        if (!point) return null;
-
-        // textos úteis para o tooltip
-        const title = feature?.pluscode?.surname
-          ? `Plus Code • ${feature.pluscode.surname}`
-          : 'Plus Code';
-        const description = feature?.pluscode?.pluscode_cod ?? '';
-
-        return (
-          <Marker
-            key={`pluscode-${feature.id || idx}`}
-            coordinate={point}
-            title={title}
-            description={description}
-          >
-            {/* Ícone customizado (bolinha com ícone) - opcional */}
-            <View style={{
-              backgroundColor: '#10b981',
-              borderRadius: 18,
-              width: 36,
-              height: 36,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderWidth: 3,
-              borderColor: '#FFF',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-              elevation: 4,
-            }}>
-              <Ionicons name="add-circle" size={20} color="#fff" />
-            </View>
-          </Marker>
-        );
-      })}
 
         {/* User Properties - Ocultar durante navegação */}
         {!isNavigating && userProperties.map((feature, idx) => {

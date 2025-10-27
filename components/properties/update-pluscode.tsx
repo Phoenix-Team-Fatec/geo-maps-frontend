@@ -11,7 +11,6 @@ type Props = {
   onUpdated?: (saved: any) => void;
   onSelectOnMap?: () => void; // pai vai mandar abrir o modo seleção
   onCenterProperty?: () => { lat: number; lng: number } | void;
-
   // NOVO: quando vier do mapa, o pai pode reabrir o modal já com as coords preenchidas
   prefillCoords?: Coords | null;
   // opcional: apelido atual para preencher
