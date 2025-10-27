@@ -3,6 +3,7 @@ import RouteProtection from '@/components/auth/RouteProtection';
 import MapScreen from '@/components/map/map-screen'; // componente do mapa
 import ButtonAddPlusRN from '@/components/plus-button/button-add-plus'; // botão flutuante (+)
 import AddPropertiesModal from '@/components/properties/add-pluscode'; // modal para criar PlusCode
+import UpdatePlusCodeModal from '@/components/properties/update-pluscode';
 import ViewPropertiesModal from '@/components/properties/view-properties'; // modal para listar propriedades
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useRef, useState } from 'react';
@@ -60,6 +61,9 @@ export default function PropertiesScreen() {
   const [showButton, setShowButton] = useState(false);                        // controla exibição do botão flutuante
   const [surnameModal, setSurnameModal] = useState(false)  // controla exibição do modal de apelido
   const [surname, setSurname] = useState('')  // variável para o apelido
+  const [showUpdate, setShowUpdate] = useState(false);
+  const [isUpdateFlow, setIsUpdateFlow] = useState(false);
+  const [updateCoords, setUpdateCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   // centraliza mapa nas coordenadas recebidas
   const handleCenter = (coords: { latitude: number; longitude: number }) => {
@@ -122,31 +126,29 @@ export default function PropertiesScreen() {
             pickMode={pickMode}           // ativa modo de seleção
             // callback ao clicar no mapa
             onMapPick={async ({ latitude, longitude }) => {
-                  try {
-                    // Se não houver imóvel selecionado, não faz nada
-                    if (!plusCodeProperty?.properties?.cod_imovel) return;
+              try {
+                const item = plusCodeProperty;
+                if (!item?.properties?.cod_imovel) return;
+                const cod = item.properties.cod_imovel;
+                const hasPlus = Boolean(item?.pluscode?.pluscode_cod);
 
-                    /*
-                      Guarda as coordenadas clicadas no mapa dentro do state
-                      do imóvel selecionado. Essas coordenadas serão usadas
-                      depois para criar o PlusCode.
-                    */
-                    setPlusCodeProperty((prev) => ({
-                      ...prev,
-                      cordinates: { latitude, longitude },
-                    }));
-
-                    /*
-                      Abre o modal para o usuário informar um apelido
-                      (ex: "Casa da Praia", "Sítio"). 
-                      A criação do PlusCode só acontece depois que o usuário
-                      confirmar no modal.
-                    */
-                    setSurnameModal(true);
-
-                  } catch (e: any) {
-                    Alert.alert('Erro', e?.message || 'Não foi possível preparar o Plus Code');
-                  }
+                if (hasPlus) {
+                  // UPDATE flow: captura coords e reabre o modal de update na etapa "confirm"
+                  setPickMode(false);
+                  setUpdateCoords({ lat: latitude, lng: longitude });
+                  // opcional: pré-carregar surname atual
+                  setShowUpdate(true);
+                } else {
+                  // CREATE flow (mantém igual)
+                  setPlusCodeProperty(prev => ({
+                    ...prev,
+                    cordinates: { latitude, longitude },
+                  }));
+                  setSurnameModal(true);
+                }
+              } catch (e: any) {
+                Alert.alert('Erro', e?.message || 'Falha na operação.');
+              }
             }}
 
           />
@@ -167,29 +169,36 @@ export default function PropertiesScreen() {
       {/* modal para criar PlusCode */}
       <AddPropertiesModal
         visible={showAdd}
-        onClose={() => {
-          setShowAdd(false);
-          setAllowClipboardPrompt(false);
-        }}
-        codImovel={plusCodeProperty?.properties?.cod_imovel} // passa imóvel alvo
-        onCreated={(saved) => {
-          setShowAdd(false);
-          setPlusCodeProperty(null);
-        }}
-        onSelectOnMap={() => setPickMode(true)} // ativa seleção no mapa
-        onCenterProperty={() => {}}             // (ainda vazio)
+        onClose={() => setShowAdd(false)}
+        codImovel={plusCodeProperty?.properties?.cod_imovel}
+        onCreated={() => { setShowAdd(false); setPlusCodeProperty(null); }}
+        onSelectOnMap={() => setPickMode(true)}
       />
+
+      <UpdatePlusCodeModal
+        visible={showUpdate}
+        onClose={() => { setShowUpdate(false); setUpdateCoords(null); }}
+        codImovel={plusCodeProperty?.properties?.cod_imovel}
+        currentSurname={plusCodeProperty?.pluscode?.surname ?? ''}  // pré-preenche se quiser
+        prefillCoords={updateCoords}                                 // reabre já com as coords -> vai direto pra "confirm"
+        onUpdated={() => { setShowUpdate(false); setPlusCodeProperty(null); setUpdateCoords(null); }}
+        onSelectOnMap={() => setPickMode(true)}
+      />
+
 
       {/* modal de listagem das propriedades */}
       <ViewPropertiesModal
         visible={showList}
         onClose={() => setShowList(false)}
         properties={properties}
-        onCenter={handleCenter} // centraliza no imóvel
+        onCenter={handleCenter}
         onGeneratePlusCode={(property) => {
-          setPlusCodeProperty(property); // guarda o imóvel escolhido
+          const hasPlus = Boolean(property?.pluscode?.pluscode_cod);
+          setPlusCodeProperty(property);
+          setIsUpdateFlow(hasPlus);
           setShowList(false);
-          setShowAdd(true);              // abre modal AddPropertiesModal
+          if (hasPlus) setShowUpdate(true);   // abre UPDATE (PUT)
+          else setShowAdd(true);              // abre ADD (POST)
         }}
       />
 

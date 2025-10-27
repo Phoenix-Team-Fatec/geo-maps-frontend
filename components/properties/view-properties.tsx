@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/auth/AuthContext';
+import AddPropertiesModal from '@/components/properties/add-pluscode';
+import UpdatePlusCodeModal from '@/components/properties/update-pluscode';
+import React, { useEffect, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -7,11 +10,27 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useAuth } from '@/auth/AuthContext';
 
 function formatarCPF(cpf: string) {
   cpf = cpf.replace(/[^\d]/g, '');
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function formatDateISO(d?: string | Date) {
+  if (!d) return '—';
+  const date = typeof d === 'string' ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return '—';
+  // PT-BR curto: 27/10/2025 07:32
+  return `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function getCoordFromLog(log: any) {
+  // No log, o backend salva "coordinates" (vindo de "cordinates").
+  // Aceitamos ambos por segurança:
+  const c = log?.coordinates ?? log?.cordinates;
+  const lat = c?.latitude ?? c?.lat ?? c?.Latitude;
+  const lng = c?.longitude ?? c?.lng ?? c?.Longitude;
+  return (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng } : null;
 }
 
 type Props = {
@@ -57,6 +76,11 @@ export default function ViewPropertiesModal({
     }
   }, [userProperties]);
 
+    const logs = Array.isArray(selectedProperty?.pluscode?.updates_logs)
+  ? selectedProperty.pluscode.updates_logs
+  : [];
+
+
   return (
    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
   <View style={styles.backdrop}>
@@ -79,6 +103,7 @@ export default function ViewPropertiesModal({
 
   // Define cor de fundo conforme o estado
   const backgroundColor = hasPlusCode ? '#234324ff' : '#911232ff'; // verde / laranja
+  
 
   return (
     <View style={[styles.itemCard, { backgroundColor }]}>
@@ -119,11 +144,11 @@ export default function ViewPropertiesModal({
 
         <TouchableOpacity
           style={[styles.centerButton, styles.plusCodeButton]}
-          onPress={() => {
-            onGeneratePlusCode && onGeneratePlusCode(item);
-          }}
+          onPress={() => onGeneratePlusCode && onGeneratePlusCode(item)}
         >
-          <Text style={styles.plusCodeText}>Gerar Plus Code</Text>
+          <Text style={styles.plusCodeText}>
+            {hasPlusCode ? 'Atualizar Plus Code' : 'Gerar Plus Code'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -191,6 +216,60 @@ export default function ViewPropertiesModal({
               : 'Pluscode não adicionado'}
           </Text>
 
+           {/* Histórico de atualizações */}
+            {logs.length > 0 ? (
+              <>
+                <Text style={[styles.detailsTitle, { fontSize: 16, marginTop: 16 }]}>
+                  Histórico do Plus Code
+                </Text>
+
+                <View style={styles.historyScrollArea}>
+                  <FlatList
+                    data={[...logs].reverse()}            // mais recente primeiro
+                    keyExtractor={(_, idx) => String(idx)}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator
+                    renderItem={({ item: log }) => {
+                      const coords = getCoordFromLog(log);
+                      return (
+                        <View
+                          style={{
+                            paddingVertical: 8,
+                            borderBottomWidth: 1,
+                            borderBottomColor: '#2a2f36',
+                          }}
+                        >
+                          <Text style={styles.detailsTextLine}>
+                            • Em: {formatDateISO(log.change_date)}
+                          </Text>
+                          <Text style={styles.detailsTextLine}>
+                            Código: {log.pluscode_cod ?? '—'}
+                          </Text>
+                          <Text style={styles.detailsTextLine}>
+                            Apelido: {log.surname ?? '—'}
+                          </Text>
+                          <Text style={styles.detailsTextLine}>
+                            Validação: {formatDateISO(log.validation_date)}
+                          </Text>
+                          {coords ? (
+                            <Text style={styles.detailsTextLine}>
+                              Coordenadas: {Number(coords.lng).toFixed(6)}, {Number(coords.lat).toFixed(6)}
+                            </Text>
+                          ) : null}
+                        </View>
+                      );
+                    }}
+                  />
+                </View>
+              </>
+            ) : (
+              <Text style={[styles.detailsTextLine, { marginTop: 12 }]}>
+                Sem histórico de atualizações.
+              </Text>
+            )}
+
+          
+
           <TouchableOpacity
             style={styles.detailsCloseButton}
             onPress={() => setSelectedProperty(null)}
@@ -202,6 +281,80 @@ export default function ViewPropertiesModal({
     </Modal>
   )}
 </Modal>
+  );
+}
+
+type FlowProps = {
+  visible: boolean;
+  onClose: () => void;
+  onCenter?: (coords: { latitude: number; longitude: number }) => void;
+};
+
+export function ViewPropertiesFlow({ visible, onClose, onCenter }: FlowProps) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [currentCodImovel, setCurrentCodImovel] = useState<string | null>(null);
+  const [currentItem, setCurrentItem] = useState<any | null>(null);
+
+  function handlePlusCodeAction(item: any) {
+    setCurrentCodImovel(item?.properties?.cod_imovel ?? null);
+    setCurrentItem(item);
+    const hasPlusCode = !!item?.pluscode && Object.keys(item.pluscode).length > 0;
+    if (hasPlusCode) setUpdateOpen(true);
+    else setAddOpen(true);
+  }
+
+  function handleSelectOnMap() {
+    // (Opcional) Ative o modo de seleção no mapa aqui.
+  }
+
+  function handleCenterFromProperty(): { lat: number; lng: number } | void {
+    if (!currentItem?.geometry) return;
+    const c =
+      currentItem.geometry?.type === 'MultiPolygon'
+        ? currentItem.geometry?.coordinates?.[0]?.[0]?.[0]
+        : currentItem.geometry?.coordinates?.[0]?.[0];
+    if (Array.isArray(c)) {
+      const [lng, lat] = c;
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+  }
+
+  return (
+    <>
+      <ViewPropertiesModal
+        visible={visible}
+        onClose={onClose}
+        onCenter={onCenter}
+        onGeneratePlusCode={handlePlusCodeAction}
+      />
+
+      {currentCodImovel && (
+        <>
+          <AddPropertiesModal
+            visible={addOpen}
+            onClose={() => setAddOpen(false)}
+            codImovel={currentCodImovel}
+            onCreated={() => {
+              // A lista se autoatualiza ao abrir; se quiser, reabra/forçe refetch aqui.
+            }}
+            onSelectOnMap={handleSelectOnMap}
+            onCenterProperty={handleCenterFromProperty}
+          />
+
+          <UpdatePlusCodeModal
+            visible={updateOpen}
+            onClose={() => setUpdateOpen(false)}
+            codImovel={currentCodImovel}
+            onUpdated={() => {
+              // Idem acima.
+            }}
+            onSelectOnMap={handleSelectOnMap}
+            onCenterProperty={handleCenterFromProperty}
+          />
+        </>
+      )}
+    </>
   );
 }
 
@@ -334,6 +487,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     width: '100%',
+    maxHeight: '85%',            // <- limita altura do modal
+  },
+  historyScrollArea: {
+  maxHeight: 100,              // <- altura fixa (ajuste se quiser)
+  marginTop: 8,
   },
   detailsTitle: { 
     color: '#fff', 
