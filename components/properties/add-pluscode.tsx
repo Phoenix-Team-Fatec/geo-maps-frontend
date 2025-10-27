@@ -35,7 +35,6 @@ async function createPlusCode(codImovel: string, lat: number, lng: number, owner
       latitude:  lat,
     },
     validation_date: new Date().toISOString(), 
-    updates_logs: [],                   // backend pode sobrescrever
   };
 
   console.log(body)

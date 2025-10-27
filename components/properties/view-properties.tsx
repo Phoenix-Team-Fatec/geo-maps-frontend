@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/auth/AuthContext';
+import AddPropertiesModal from '@/components/properties/add-pluscode';
+import UpdatePlusCodeModal from '@/components/properties/update-pluscode';
+import React, { useEffect, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -7,13 +10,27 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useAuth } from '@/auth/AuthContext';
-import AddPropertiesModal from '@/components/properties/add-pluscode';
-import UpdatePlusCodeModal from '@/components/properties/update-pluscode';
 
 function formatarCPF(cpf: string) {
   cpf = cpf.replace(/[^\d]/g, '');
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function formatDateISO(d?: string | Date) {
+  if (!d) return '—';
+  const date = typeof d === 'string' ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return '—';
+  // PT-BR curto: 27/10/2025 07:32
+  return `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function getCoordFromLog(log: any) {
+  // No log, o backend salva "coordinates" (vindo de "cordinates").
+  // Aceitamos ambos por segurança:
+  const c = log?.coordinates ?? log?.cordinates;
+  const lat = c?.latitude ?? c?.lat ?? c?.Latitude;
+  const lng = c?.longitude ?? c?.lng ?? c?.Longitude;
+  return (Number.isFinite(lat) && Number.isFinite(lng)) ? { lat, lng } : null;
 }
 
 type Props = {
@@ -58,6 +75,11 @@ export default function ViewPropertiesModal({
       if (updated) setSelectedProperty(updated);
     }
   }, [userProperties]);
+
+    const logs = Array.isArray(selectedProperty?.pluscode?.updates_logs)
+  ? selectedProperty.pluscode.updates_logs
+  : [];
+
 
   return (
    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -193,6 +215,60 @@ export default function ViewPropertiesModal({
                 }`
               : 'Pluscode não adicionado'}
           </Text>
+
+           {/* Histórico de atualizações */}
+            {logs.length > 0 ? (
+              <>
+                <Text style={[styles.detailsTitle, { fontSize: 16, marginTop: 16 }]}>
+                  Histórico do Plus Code
+                </Text>
+
+                <View style={styles.historyScrollArea}>
+                  <FlatList
+                    data={[...logs].reverse()}            // mais recente primeiro
+                    keyExtractor={(_, idx) => String(idx)}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator
+                    renderItem={({ item: log }) => {
+                      const coords = getCoordFromLog(log);
+                      return (
+                        <View
+                          style={{
+                            paddingVertical: 8,
+                            borderBottomWidth: 1,
+                            borderBottomColor: '#2a2f36',
+                          }}
+                        >
+                          <Text style={styles.detailsTextLine}>
+                            • Em: {formatDateISO(log.change_date)}
+                          </Text>
+                          <Text style={styles.detailsTextLine}>
+                            Código: {log.pluscode_cod ?? '—'}
+                          </Text>
+                          <Text style={styles.detailsTextLine}>
+                            Apelido: {log.surname ?? '—'}
+                          </Text>
+                          <Text style={styles.detailsTextLine}>
+                            Validação: {formatDateISO(log.validation_date)}
+                          </Text>
+                          {coords ? (
+                            <Text style={styles.detailsTextLine}>
+                              Coordenadas: {Number(coords.lng).toFixed(6)}, {Number(coords.lat).toFixed(6)}
+                            </Text>
+                          ) : null}
+                        </View>
+                      );
+                    }}
+                  />
+                </View>
+              </>
+            ) : (
+              <Text style={[styles.detailsTextLine, { marginTop: 12 }]}>
+                Sem histórico de atualizações.
+              </Text>
+            )}
+
+          
 
           <TouchableOpacity
             style={styles.detailsCloseButton}
@@ -411,6 +487,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     width: '100%',
+    maxHeight: '85%',            // <- limita altura do modal
+  },
+  historyScrollArea: {
+  maxHeight: 100,              // <- altura fixa (ajuste se quiser)
+  marginTop: 8,
   },
   detailsTitle: { 
     color: '#fff', 

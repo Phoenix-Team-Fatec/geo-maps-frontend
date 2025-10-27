@@ -1,21 +1,29 @@
-import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
 import * as Location from 'expo-location';
+import React, { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+type Coords = { lat: number; lng: number };
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   codImovel: string;
   onUpdated?: (saved: any) => void;
-  onSelectOnMap?: () => void;
+  onSelectOnMap?: () => void; // pai vai mandar abrir o modo seleção
   onCenterProperty?: () => { lat: number; lng: number } | void;
+
+  // NOVO: quando vier do mapa, o pai pode reabrir o modal já com as coords preenchidas
+  prefillCoords?: Coords | null;
+  // opcional: apelido atual para preencher
+  currentSurname?: string;
 };
 
-async function putUpdatePlusCode(codImovel: string, lat: number, lng: number) {
-  const body = {
-    cordinates: { latitude: lat, longitude: lng }, // mantém "cordinates" conforme seu backend
+async function putUpdatePlusCode(codImovel: string, coords: Coords, surname?: string) {
+  const body: any = {
+    cordinates: { latitude: coords.lat, longitude: coords.lng }, // mantém "cordinates"
     validation_date: new Date().toISOString(),
   };
+  if (surname && surname.trim()) body.surname = surname.trim(); // envia surname se informado
 
   const resp = await fetch(`/area_imovel/properties/${codImovel}/pluscode`, {
     method: 'PUT',
@@ -37,8 +45,26 @@ export default function UpdatePlusCodeModal({
   onUpdated,
   onSelectOnMap,
   onCenterProperty,
+  prefillCoords,
+  currentSurname = '',
 }: Props) {
+  // etapa: 'choose' (escolher origem) | 'confirm' (input + confirmar PUT)
+  const [step, setStep] = useState<'choose' | 'confirm'>('choose');
   const [isSaving, setIsSaving] = useState(false);
+  const [coords, setCoords] = useState<Coords | null>(null);
+  const [surname, setSurname] = useState(currentSurname);
+
+  // quando o modal abrir com prefill (caso do mapa), já vai para etapa "confirm"
+  useEffect(() => {
+    if (visible && prefillCoords) {
+      setCoords(prefillCoords);
+      setStep('confirm');
+    }
+  }, [visible, prefillCoords]);
+
+  useEffect(() => {
+    if (visible) setSurname(currentSurname || '');
+  }, [visible, currentSurname]);
 
   const handleUseMyLocation = async () => {
     try {
@@ -63,25 +89,20 @@ export default function UpdatePlusCodeModal({
           return;
         }
       }
+
       let pos = await Location.getLastKnownPositionAsync({});
       if (!pos) pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       if (!pos) pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       if (!pos) throw new Error('Não foi possível obter a localização.');
 
-      const { latitude: lat, longitude: lng } = pos.coords;
-      const saved = await putUpdatePlusCode(codImovel, lat, lng);
-      onUpdated && onUpdated(saved);
-      onClose();
+      const { latitude, longitude } = pos.coords;
+      setCoords({ lat: latitude, lng: longitude });
+      setStep('confirm'); // próxima etapa: pedir surname e salvar
     } catch (e: any) {
-      Alert.alert('Erro', e?.message || 'Falha ao atualizar o Plus Code.');
+      Alert.alert('Erro', e?.message || 'Falha ao obter localização.');
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleSelectOnMap = () => {
-    onSelectOnMap && onSelectOnMap();
-    onClose();
   };
 
   const handleUsePropertyCenter = async () => {
@@ -89,11 +110,33 @@ export default function UpdatePlusCodeModal({
       setIsSaving(true);
       const center = onCenterProperty?.();
       if (!center) throw new Error('Centro da propriedade indisponível.');
-      const saved = await putUpdatePlusCode(codImovel, center.lat, center.lng);
+      setCoords({ lat: center.lat, lng: center.lng });
+      setStep('confirm');
+    } catch (e: any) {
+      Alert.alert('Erro', e?.message || 'Falha ao usar o centro da propriedade.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSelectOnMap = () => {
+    // fecha e deixa o pai ativar o "pick mode".
+    onSelectOnMap && onSelectOnMap();
+    onClose();
+  };
+
+  const handleConfirm = async () => {
+    if (!coords) {
+      Alert.alert('Faltam dados', 'Coordenadas não definidas.');
+      return;
+    }
+    try {
+      setIsSaving(true);
+      const saved = await putUpdatePlusCode(codImovel, coords, surname);
       onUpdated && onUpdated(saved);
       onClose();
     } catch (e: any) {
-      Alert.alert('Erro', e?.message || 'Falha ao usar o centro da propriedade.');
+      Alert.alert('Erro', e?.message || 'Falha ao atualizar o Plus Code.');
     } finally {
       setIsSaving(false);
     }
@@ -104,23 +147,55 @@ export default function UpdatePlusCodeModal({
       <View style={styles.backdrop}>
         <KeyboardAvoidingView style={{ flex: 1, justifyContent: 'flex-end' }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.container}>
-            <Text style={styles.title}>Atualizar Plus Code</Text>
+            {step === 'choose' ? (
+              <>
+                <Text style={styles.title}>Atualizar Plus Code</Text>
 
-            <TouchableOpacity style={styles.option} onPress={handleUseMyLocation} disabled={isSaving}>
-              <Text style={styles.optionText}>📍 Usar minha localização</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.option} onPress={handleUseMyLocation} disabled={isSaving}>
+                  <Text style={styles.optionText}>📍 Usar minha localização</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.option} onPress={handleUsePropertyCenter} disabled={isSaving}>
-              <Text style={styles.optionText}>📐 Usar centro da propriedade</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={styles.option} onPress={handleSelectOnMap} disabled={isSaving}>
+                  <Text style={styles.optionText}>🗺️ Selecionar no mapa</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity style={styles.option} onPress={handleSelectOnMap} disabled={isSaving}>
-              <Text style={styles.optionText}>🗺️ Selecionar no mapa</Text>
-            </TouchableOpacity>
+                <TouchableOpacity style={[styles.option, styles.cancel]} onPress={onClose}>
+                  <Text style={[styles.optionText, styles.cancelText]}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.title}>Confirmar atualização</Text>
 
-            <TouchableOpacity style={[styles.option, styles.cancel]} onPress={onClose}>
-              <Text style={[styles.optionText, styles.cancelText]}>Cancelar</Text>
-            </TouchableOpacity>
+                {coords && (
+                  <Text style={styles.coords}>
+                    Coordenadas: {coords.lng.toFixed(6)}, {coords.lat.toFixed(6)}
+                  </Text>
+                )}
+
+                <TextInput
+                  value={surname}
+                  onChangeText={setSurname}
+                  placeholder="Apelido (ex.: Sítio, Casa da Praia...)"
+                  placeholderTextColor="#9CA3AF"
+                  style={styles.input}
+                  maxLength={50}
+                  autoFocus
+                />
+
+                <TouchableOpacity style={[styles.option, styles.save]} onPress={handleConfirm} disabled={isSaving}>
+                  <Text style={styles.optionText}>Salvar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.option, styles.back]}
+                  onPress={() => setStep('choose')}
+                  disabled={isSaving}
+                >
+                  <Text style={styles.optionText}>← Voltar</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -134,6 +209,19 @@ const styles = StyleSheet.create({
   title: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
   option: { backgroundColor: '#1f2937', padding: 14, borderRadius: 8, marginBottom: 10, alignItems: 'center' },
   optionText: { color: '#fff', fontSize: 16, fontWeight: '500' },
-  cancel: { backgroundColor: '#374151', marginTop: 10 },
+  cancel: { backgroundColor: '#374151', marginTop: 6 },
   cancelText: { color: '#f87171', fontWeight: '700' },
+  save: { backgroundColor: '#10b981' },
+  back: { backgroundColor: '#374151' },
+  input: {
+    backgroundColor: '#1f2937',
+    color: '#fff',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#374151',
+    marginBottom: 12,
+  },
+  coords: { color: '#9CA3AF', marginBottom: 10, textAlign: 'center' },
 });
