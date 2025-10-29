@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import SplashScreen from '@/components/initial-screen/splash-screen';
 import { setGlobalFont, useAppFonts } from '@/config/font-config';
-import { AuthProvider } from '@/auth/AuthContext';
+import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { setupNetworking } from '../services/networking';
 
 import '../global.css';
@@ -37,16 +37,35 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="create-account" />
-        <Stack.Screen name="create-profile" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="forgot-password" />
-        <Stack.Screen name="reset-password" />
-        <Stack.Screen name="verify-code" />
-        <Stack.Screen name="template-page" />
-      </Stack>
+      <AuthGate />
     </AuthProvider>
+  );
+}
+
+function AuthGate() {
+  const { loading, user } = useAuth();
+
+  if (loading) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      {user ? (
+        // comece pelo seu group de tabs; ele renderiza /(tabs)/map por padrão
+        <Stack.Screen name="(tabs)" />
+      ) : (
+        <>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="create-account" />
+          <Stack.Screen name="create-profile" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="forgot-password" />
+          <Stack.Screen name="reset-password" />
+          <Stack.Screen name="verify-code" />
+          <Stack.Screen name="template-page" />
+        </>
+      )}
+    </Stack>
   );
 }

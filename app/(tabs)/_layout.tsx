@@ -27,15 +27,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="routes"
-        options={{
-          title: 'Rotas',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="navigate" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="properties"
         options={{
           title: 'Propriedades',

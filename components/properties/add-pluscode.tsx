@@ -15,13 +15,26 @@ type Props = {
 };
 
 // função que faz POST no backend criando um PlusCode
-async function createPlusCode(codImovel: string, lat: number, lng: number, ownerName?: string) {
+async function createPlusCode(codImovel: string, lat: number, lng: number, ownerEmail: string) {
+  if (!ownerEmail || !ownerEmail.includes('@')) {
+    throw new Error('owner_email ausente ou inválido: faça login com um e-mail válido.');
+  }
+
+  // Surname simples (prefixo do e-mail) para evitar vazio
+  const surname = ownerEmail.split('@')[0];
+
+  // Preenche TODOS os campos que o backend exige
   const body = {
-    surname: '',
-    cod_imovel: codImovel,
-    owner_email: ownerName || 'Usuário',
-    pluscode_cod: "", // obrigatório, backend vai sobrescrever
-    cordinates: { longitude: lng, latitude: lat }, // "cordinates" com "r"
+    id: 'temp',                         // backend pode sobrescrever
+    surname,
+    owner_email: ownerEmail,            
+    pluscode_cod: 'PENDING',            // backend pode sobrescrever
+    cod_imovel: codImovel,              
+    cordinates: {                       
+      longitude: lng,
+      latitude:  lat,
+    },
+    validation_date: new Date().toISOString(), 
   };
 
   console.log(body)
