@@ -89,9 +89,10 @@ export default function ButtonAddPlus({ onAdd, onList }: Props) {
 const styles = StyleSheet.create({
     container: {
         position: 'absolute',
-        right: 10, 
+        right: 10,
         bottom: 82,
         alignItems: 'center',
+        zIndex: 20,
     },
     fab: {
         width: 50,
