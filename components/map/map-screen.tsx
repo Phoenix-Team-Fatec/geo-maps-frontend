@@ -12,7 +12,7 @@ import MapView, { Marker, Polyline, Polygon, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import SearchScreen from '@/components/search/search-bar-maps';
+import SearchScreen from '@/components/search/SearchScreen';
 import { SearchLocation } from '@/types/location';
 import { loadFullProjectArea, ProjectArea } from '@/utils/geojson';
 import { traceRoute } from '@/services/routes-client';
@@ -48,9 +48,11 @@ type MapScreenProps = {
   userProperties?: any[];
   pickMode?: boolean;
   onMapPick?: (coords: { latitude: number; longitude: number }) => void;
+  onNavigationStateChange?: (isNavigating: boolean, hasRoute: boolean) => void;
+  onSearchStateChange?: (isSearching: boolean) => void;
 };
 
-export default function MapScreen({ userProperties = [], pickMode = false, onMapPick }: MapScreenProps) {
+export default function MapScreen({ userProperties = [], pickMode = false, onMapPick, onNavigationStateChange, onSearchStateChange }: MapScreenProps) {
   // Estados de localização
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [projectAreaCenter, setProjectAreaCenter] = useState<LocationCoords | null>(null);
@@ -58,13 +60,13 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConditionModal, setShowConditionModal] = useState(false);
-  
+
   // Origem e Destino
   const [origin, setOrigin] = useState<LocationCoords | null>(null);
   const [originLocation, setOriginLocation] = useState<SearchLocation | null>(null);
   const [destination, setDestination] = useState<LocationCoords | null>(null);
   const [destinationLocation, setDestinationLocation] = useState<SearchLocation | null>(null);
-  
+
   // Rota
   const [routeCoordinates, setRouteCoordinates] = useState<LocationCoords[]>([]);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
@@ -78,7 +80,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
   const [nextInstruction, setNextInstruction] = useState<string>('Continue em frente');
   const [nextInstructionDistance, setNextInstructionDistance] = useState<string>('');
   const [arrivalTime, setArrivalTime] = useState<string>('--:--');
-  
+
   // UI
   const [showSearchScreen, setShowSearchScreen] = useState(false);
   const [searchMode, setSearchMode] = useState<'origin' | 'destination'>('destination');
@@ -125,6 +127,21 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       setOrigin(location);
     }
   }, [location, useCurrentLocation]);
+
+  // Notify parent about navigation state changes
+  useEffect(() => {
+    if (onNavigationStateChange) {
+      const hasRoute = routeCoordinates.length > 0;
+      onNavigationStateChange(isNavigating, hasRoute);
+    }
+  }, [isNavigating, routeCoordinates.length, onNavigationStateChange]);
+
+  // Notify parent about search screen state changes
+  useEffect(() => {
+    if (onSearchStateChange) {
+      onSearchStateChange(showSearchScreen);
+    }
+  }, [showSearchScreen, onSearchStateChange]);
 
   const initializeApp = async () => {
     const fullArea = await loadFullProjectArea();
@@ -178,7 +195,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
             longitude: locationUpdate.coords.longitude,
           };
           setLocation(newCoords);
-          
+
           if (useCurrentLocation) {
             setOrigin(newCoords);
           }
@@ -299,7 +316,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
   // Obter ícone da manobra
   const getManeuverIcon = (maneuver?: string): string => {
     if (!maneuver) return 'arrow-up';
-    
+
     const maneuverMap: { [key: string]: string } = {
       'turn-left': 'arrow-back',
       'turn-right': 'arrow-forward',
@@ -360,18 +377,86 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       }
     } catch (error) {
       console.error('Error generating route:', error);
-      Alert.alert('Erro', 'Não foi possível gerar a rota');
+
+      try {
+        generateOfflineRoute();
+      } catch {
+        Alert.alert('Erro', 'Não foi possível gerar a rota');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Velocidade média em m/s por modo
+  const getAvgSpeedByMode = (mode: TravelMode): number => {
+    // valores bem aproximados só pra estimativa
+    switch (mode) {
+      case 'driving': return 60 / 3.6; // 60 km/h
+      case 'walking': return 5 / 3.6;  // 5 km/h
+      case 'bicycling': return 15 / 3.6; // 15 km/h
+      case 'transit': return 40 / 3.6; // 40 km/h
+      default: return 50 / 3.6;
+    }
+  };
+
+  const generateOfflineRoute = () => {
+    if (!origin || !destination) return;
+
+    // Rota simples: reta entre origem e destino
+    const coords = [origin, destination];
+    setRouteCoordinates(coords);
+
+    const distanceMeters = calculateDistance(origin, destination);
+    const avgSpeed = getAvgSpeedByMode(travelMode); // m/s
+    const durationSeconds = distanceMeters / avgSpeed;
+
+    // Info da rota
+    setRouteInfo({
+      distance: formatDistance(distanceMeters),
+      duration: formatDuration(durationSeconds),
+      steps: 1,
+    });
+
+    // Criar um step "genérico" pra navegação
+    const offlineStep: RouteStep = {
+      distance: {
+        text: formatDistance(distanceMeters),
+        value: distanceMeters,
+      },
+      duration: {
+        text: formatDuration(durationSeconds),
+        value: durationSeconds,
+      },
+      end_location: {
+        lat: destination.latitude,
+        lng: destination.longitude,
+      },
+      html_instructions: 'Siga em direção ao destino',
+      maneuver: 'straight',
+      polyline: { points: '' }, // vazio mesmo, não vai ser usado aqui
+    };
+
+    setRouteSteps([offlineStep]);
+
+    // Ajustar mapa para mostrar a rota
+    if (mapRef.current && coords.length > 0) {
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates(coords, {
+          edgePadding: { top: 150, right: 80, bottom: 400, left: 80 },
+          animated: true,
+        });
+      }, 500);
+    }
+  };
+
 
   const handleLocationSelect = (searchLocation: SearchLocation) => {
     if (searchMode === 'origin') {
       setOriginLocation(searchLocation);
       setOrigin(searchLocation.coordinates);
       setUseCurrentLocation(false);
-      
+
       // Animar para o ponto de origem selecionado
       if (mapRef.current) {
         setTimeout(() => {
@@ -388,7 +473,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
     } else {
       setDestinationLocation(searchLocation);
       setDestination(searchLocation.coordinates);
-      
+
       // Animar para o destino selecionado com zoom suave
       if (mapRef.current) {
         setTimeout(() => {
@@ -414,7 +499,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
 
     setIsNavigating(true);
     setCurrentStepIndex(0);
-    
+
     // Inicializar com valores da rota completa
     const leg = routeSteps.reduce((acc, step) => ({
       distance: acc.distance + step.distance.value,
@@ -548,19 +633,19 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
 
   const initialRegion: Region = projectAreaCenter
     ? {
-        latitude: projectAreaCenter.latitude,
-        longitude: projectAreaCenter.longitude,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      }
+      latitude: projectAreaCenter.latitude,
+      longitude: projectAreaCenter.longitude,
+      latitudeDelta: 0.1,
+      longitudeDelta: 0.1,
+    }
     : location
-    ? {
+      ? {
         latitude: location.latitude,
         longitude: location.longitude,
         latitudeDelta: 0.02,
         longitudeDelta: 0.02,
       }
-    : {
+      : {
         latitude: -23.5505,
         longitude: -46.6333,
         latitudeDelta: 0.02,
@@ -613,7 +698,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       {!isNavigating && (
         <>
           {/* Origin and Destination Bars */}
-          <View className="absolute top-16 left-4 right-4 z-10">
+          <View className="absolute top-16 left-4 right-4" style={{ zIndex: 40 }}>
             {/* Origin Bar */}
             <View className="bg-white rounded-2xl shadow-lg elevation-4 mb-2">
               <TouchableOpacity
@@ -685,7 +770,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
 
           {/* Route Info Card */}
           {routeInfo && (
-            <View className="absolute bottom-8 left-4 right-4 z-10 bg-white rounded-3xl shadow-2xl elevation-6 p-4">
+            <View className="absolute bottom-8 left-4 right-4 bg-white rounded-3xl shadow-2xl elevation-6 p-4" style={{ zIndex: 30 }}>
               <View className="flex-row justify-around mb-4">
                 <View className="items-center">
                   <Ionicons name="navigate" size={24} color="#00D4FF" />
@@ -722,8 +807,8 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       {isNavigating && (
         <>
           {/* Header com tempo e botão X */}
-          <View className="absolute top-0 left-0 right-0 z-10 pt-14 pb-6 px-4">
-            <View 
+          <View className="absolute top-0 left-0 right-0 pt-14 pb-6 px-4" style={{ zIndex: 60 }}>
+            <View
               className="bg-gray-900/95 rounded-3xl px-5 py-4 shadow-2xl"
               style={{
                 shadowColor: '#000',
@@ -775,7 +860,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
           </View>
 
           {/* Botão de recentralizar */}
-          <View className="absolute bottom-52 right-4 z-10">
+          <View className="absolute bottom-52 right-4" style={{ zIndex: 55 }}>
             <TouchableOpacity
               className="bg-white rounded-full w-14 h-14 items-center justify-center shadow-xl elevation-8"
               onPress={() => {
@@ -797,7 +882,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
           </View>
 
           {/* Card de instrução inferior - Estilo Waze/Google Maps */}
-          <View className="absolute bottom-0 left-0 right-0 z-10">
+          <View className="absolute bottom-0 left-0 right-0" style={{ zIndex: 60 }}>
             <View className="bg-white rounded-t-3xl shadow-2xl elevation-12 px-5 pt-4 pb-8">
               {/* Indicador de arraste */}
               <View className="items-center mb-3">
@@ -808,10 +893,10 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
               <View className="flex-row items-center">
                 {/* Ícone da instrução */}
                 <View className="bg-blue-500 rounded-2xl w-16 h-16 items-center justify-center mr-4 shadow-lg">
-                  <Ionicons 
-                    name={getManeuverIcon(routeSteps[currentStepIndex]?.maneuver)} 
-                    size={36} 
-                    color="#FFF" 
+                  <Ionicons
+                    name={getManeuverIcon(routeSteps[currentStepIndex]?.maneuver)}
+                    size={36}
+                    color="#FFF"
                   />
                 </View>
 
@@ -835,10 +920,10 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
               {currentStepIndex < routeSteps.length - 1 && (
                 <View className="flex-row items-center mt-4 pt-4 border-t border-gray-100">
                   <View className="bg-gray-100 rounded-lg w-8 h-8 items-center justify-center mr-3">
-                    <Ionicons 
-                      name={getManeuverIcon(routeSteps[currentStepIndex + 1]?.maneuver)} 
-                      size={16} 
-                      color="#6B7280" 
+                    <Ionicons
+                      name={getManeuverIcon(routeSteps[currentStepIndex + 1]?.maneuver)}
+                      size={16}
+                      color="#6B7280"
                     />
                   </View>
                   <Text className="text-gray-500 text-sm flex-1" numberOfLines={1}>
@@ -1004,13 +1089,12 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
         >
           <View className="bg-white rounded-t-3xl p-6">
             <Text className="text-xl font-bold text-gray-900 mb-4">Modo de Viagem</Text>
-            
+
             {(['driving', 'walking', 'bicycling', 'transit'] as TravelMode[]).map((mode) => (
               <TouchableOpacity
                 key={mode}
-                className={`flex-row items-center p-4 rounded-2xl mb-2 ${
-                  travelMode === mode ? 'bg-blue-100' : 'bg-gray-100'
-                }`}
+                className={`flex-row items-center p-4 rounded-2xl mb-2 ${travelMode === mode ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}
                 onPress={() => {
                   setTravelMode(mode);
                   setShowTravelModeModal(false);
@@ -1022,9 +1106,8 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
                   color={travelMode === mode ? '#00D4FF' : '#666'}
                 />
                 <Text
-                  className={`ml-3 text-base font-medium ${
-                    travelMode === mode ? 'text-[#00D4FF]' : 'text-gray-900'
-                  }`}
+                  className={`ml-3 text-base font-medium ${travelMode === mode ? 'text-[#00D4FF]' : 'text-gray-900'
+                    }`}
                 >
                   {getTravelModeLabel(mode)}
                 </Text>
@@ -1045,9 +1128,9 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
         currentLocation={location || undefined}
       />
 
-            {/* Floating Button to Report Road Condition */}
-      {!isNavigating && !showSearchScreen && (
-        <View className="absolute bottom-8 right-4 z-10">
+      {/* Floating Button to Report Road Condition - Hide when navigating or route planned */}
+      {!isNavigating && !showSearchScreen && routeCoordinates.length === 0 && (
+        <View className="absolute bottom-8 right-4" style={{ zIndex: 20 }}>
           <TouchableOpacity
             className="bg-[#00D4FF] rounded-full w-14 h-14 items-center justify-center shadow-xl elevation-8"
             onPress={() => setShowConditionModal(true)}

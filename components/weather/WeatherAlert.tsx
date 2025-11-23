@@ -98,7 +98,7 @@ export default function WeatherAlert({
 
   return (
     <Animated.View
-      className="absolute top-[170px] left-4 right-4 rounded-2xl shadow-2xl overflow-hidden"
+      className="absolute top-[200px] left-4 right-4 rounded-2xl shadow-2xl overflow-hidden"
       style={{
         transform: [{ translateY: slideAnim }],
         backgroundColor: config.color,
@@ -107,7 +107,7 @@ export default function WeatherAlert({
         shadowOpacity: 0.3,
         shadowRadius: 8,
         elevation: 10,
-        zIndex: 5,
+        zIndex: 50,
       }}
     >
       <View className="flex-row items-center p-4">

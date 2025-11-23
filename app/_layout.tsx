@@ -4,6 +4,8 @@ import SplashScreen from '@/components/initial-screen/splash-screen';
 import { setGlobalFont, useAppFonts } from '@/config/font-config';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { setupNetworking } from '../services/networking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import PlusCodeStorage from '@/services/PlusCodeStorage';
 
 import '../global.css';
 setupNetworking();
@@ -11,6 +13,10 @@ setupNetworking();
 export default function RootLayout() {
   const [isShowingSplash, setIsShowingSplash] = useState(true);
   const { fontsLoaded, fontError } = useAppFonts();
+
+  useEffect(() => {
+    PlusCodeStorage.initialize();
+  }, []);
 
   useEffect(() => {
     // Set global font when fonts are loaded
