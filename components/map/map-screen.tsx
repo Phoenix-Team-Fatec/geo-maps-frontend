@@ -48,9 +48,11 @@ type MapScreenProps = {
   userProperties?: any[];
   pickMode?: boolean;
   onMapPick?: (coords: { latitude: number; longitude: number }) => void;
+  onNavigationStateChange?: (isNavigating: boolean, hasRoute: boolean) => void;
+  onSearchStateChange?: (isSearching: boolean) => void;
 };
 
-export default function MapScreen({ userProperties = [], pickMode = false, onMapPick }: MapScreenProps) {
+export default function MapScreen({ userProperties = [], pickMode = false, onMapPick, onNavigationStateChange, onSearchStateChange }: MapScreenProps) {
   // Estados de localização
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [projectAreaCenter, setProjectAreaCenter] = useState<LocationCoords | null>(null);
@@ -125,6 +127,21 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       setOrigin(location);
     }
   }, [location, useCurrentLocation]);
+
+  // Notify parent about navigation state changes
+  useEffect(() => {
+    if (onNavigationStateChange) {
+      const hasRoute = routeCoordinates.length > 0;
+      onNavigationStateChange(isNavigating, hasRoute);
+    }
+  }, [isNavigating, routeCoordinates.length, onNavigationStateChange]);
+
+  // Notify parent about search screen state changes
+  useEffect(() => {
+    if (onSearchStateChange) {
+      onSearchStateChange(showSearchScreen);
+    }
+  }, [showSearchScreen, onSearchStateChange]);
 
   const initializeApp = async () => {
     const fullArea = await loadFullProjectArea();
@@ -681,7 +698,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       {!isNavigating && (
         <>
           {/* Origin and Destination Bars */}
-          <View className="absolute top-16 left-4 right-4 z-10">
+          <View className="absolute top-16 left-4 right-4" style={{ zIndex: 40 }}>
             {/* Origin Bar */}
             <View className="bg-white rounded-2xl shadow-lg elevation-4 mb-2">
               <TouchableOpacity
@@ -753,7 +770,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
 
           {/* Route Info Card */}
           {routeInfo && (
-            <View className="absolute bottom-8 left-4 right-4 z-10 bg-white rounded-3xl shadow-2xl elevation-6 p-4">
+            <View className="absolute bottom-8 left-4 right-4 bg-white rounded-3xl shadow-2xl elevation-6 p-4" style={{ zIndex: 30 }}>
               <View className="flex-row justify-around mb-4">
                 <View className="items-center">
                   <Ionicons name="navigate" size={24} color="#00D4FF" />
@@ -790,7 +807,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
       {isNavigating && (
         <>
           {/* Header com tempo e botão X */}
-          <View className="absolute top-0 left-0 right-0 z-10 pt-14 pb-6 px-4">
+          <View className="absolute top-0 left-0 right-0 pt-14 pb-6 px-4" style={{ zIndex: 60 }}>
             <View
               className="bg-gray-900/95 rounded-3xl px-5 py-4 shadow-2xl"
               style={{
@@ -843,7 +860,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
           </View>
 
           {/* Botão de recentralizar */}
-          <View className="absolute bottom-52 right-4 z-10">
+          <View className="absolute bottom-52 right-4" style={{ zIndex: 55 }}>
             <TouchableOpacity
               className="bg-white rounded-full w-14 h-14 items-center justify-center shadow-xl elevation-8"
               onPress={() => {
@@ -865,7 +882,7 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
           </View>
 
           {/* Card de instrução inferior - Estilo Waze/Google Maps */}
-          <View className="absolute bottom-0 left-0 right-0 z-10">
+          <View className="absolute bottom-0 left-0 right-0" style={{ zIndex: 60 }}>
             <View className="bg-white rounded-t-3xl shadow-2xl elevation-12 px-5 pt-4 pb-8">
               {/* Indicador de arraste */}
               <View className="items-center mb-3">
@@ -1111,9 +1128,9 @@ export default function MapScreen({ userProperties = [], pickMode = false, onMap
         currentLocation={location || undefined}
       />
 
-      {/* Floating Button to Report Road Condition */}
-      {!isNavigating && !showSearchScreen && (
-        <View className="absolute bottom-8 right-4 z-10">
+      {/* Floating Button to Report Road Condition - Hide when navigating or route planned */}
+      {!isNavigating && !showSearchScreen && routeCoordinates.length === 0 && (
+        <View className="absolute bottom-8 right-4" style={{ zIndex: 20 }}>
           <TouchableOpacity
             className="bg-[#00D4FF] rounded-full w-14 h-14 items-center justify-center shadow-xl elevation-8"
             onPress={() => setShowConditionModal(true)}
